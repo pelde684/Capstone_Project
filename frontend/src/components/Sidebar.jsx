@@ -4,6 +4,7 @@ import {
   LayoutGrid,
   Boxes,
   ClipboardList,
+  MessageSquare,
   LogOut,
   Briefcase,
   Menu,
@@ -15,6 +16,7 @@ const navItems = [
   { label: "Dashboard", icon: LayoutGrid, path: "/dashboard" },
   { label: "Register Item", icon: ClipboardList, path: "/register" },
   { label: "My Belongings", icon: Boxes, path: "/belongings" },
+  { label: "Feedback", icon: MessageSquare, path: "/feedback" },
 ];
 
 export default function Sidebar({ activePath }) {

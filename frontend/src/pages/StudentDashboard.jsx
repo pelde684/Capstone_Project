@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ChevronDown,
   Briefcase,
+  MessageSquare,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import loginBg from "../assets/college.jpeg";
@@ -107,6 +108,22 @@ export default function StudentDashboard() {
                   className="mt-4 flex items-center gap-1 text-sm font-medium text-accent transition-all hover:gap-2"
                 >
                   View Belongings <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-line bg-panel p-6 shadow-md backdrop-blur-md sm:p-7 lg:col-span-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20">
+                  <MessageSquare className="h-5 w-5 text-amber-600 dark:text-amber-300" />
+                </div>
+                <h2 className="mt-4 text-lg font-semibold text-heading">Feedback &amp; Complaints</h2>
+                <p className="mt-1 text-sm text-body">
+                  Found something wrong with the website, or have a suggestion? Let us know.
+                </p>
+                <button
+                  onClick={() => navigate("/feedback")}
+                  className="mt-4 flex items-center gap-1 text-sm font-medium text-accent transition-all hover:gap-2"
+                >
+                  Send Feedback <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>

@@ -1,24 +1,26 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Bell,
   UserCircle2,
   ChevronDown,
-  Upload,
   ArrowLeft,
-  Download,
+  Printer,
   CheckCircle2,
   Pencil,
   Plus,
   Trash2,
-  Package,
+  Camera,
+  X,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { useBelongings } from "../context/BelongingsContext";
 import loginBg from "../assets/college.jpeg";
 
 const categories = ["Suitcase", "Backpack", "Box", "Bucket", "Mirror", "Other"];
+const MAX_PHOTOS = 4;
 
 // TODO: once Tandin's API is ready, the backend should generate and return the
 // real unique batch ID when the items are saved, instead of generating it here.
@@ -34,13 +36,13 @@ function emptyItem() {
     itemName: "",
     category: "",
     description: "",
-    photo: null,
-    photoPreview: null,
+    photos: [], // each one: { id, file, preview }
   };
 }
 
-// Shrinks a photo and turns it into a small image string that can be saved
-function fileToDataUrl(file, maxSize = 800, quality = 0.7) {
+// Shrinks a photo and turns it into a small image string that can be saved.
+// Photos are kept small because every item can have up to 4 of them.
+function fileToDataUrl(file, maxSize = 640, quality = 0.6) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -61,6 +63,123 @@ function fileToDataUrl(file, maxSize = 800, quality = 0.7) {
   });
 }
 
+/* ---------- A4 print sheet ---------- */
+
+// Works out how many columns to use and how big each label and QR code can be
+// so that every item's QR code fits on one A4 page (190 x 245 mm usable area).
+function sheetLayout(count) {
+  const usableW = 190;
+  const usableH = 245;
+  const gap = 3;
+  const cols = count <= 4 ? 2 : count <= 9 ? 3 : count <= 16 ? 4 : 5;
+  const rows = Math.ceil(count / cols);
+  const cellW = (usableW - gap * (cols - 1)) / cols;
+  const cellH = Math.min(85, (usableH - gap * (rows - 1)) / rows);
+  const qr = Math.max(18, Math.min(cellW - 8, cellH - 20, 60));
+  return { cols, gap, cellW, cellH, qr };
+}
+
+// Hidden on screen. When printing, the app is hidden and only this sheet shows.
+const PRINT_CSS = `
+  .print-sheet { display: none; }
+  @media print {
+    @page { size: A4 portrait; margin: 10mm; }
+    :root { color-scheme: light !important; }
+    html, body { background: #fff !important; color: #000 !important; }
+    #root { display: none !important; }
+    .print-sheet {
+      display: block !important;
+      width: 190mm;
+      margin: 0 auto;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #000;
+    }
+    .print-sheet * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .print-header { height: 18mm; border-bottom: 0.4mm solid #000; margin-bottom: 4mm; }
+    .print-title { font-size: 14pt; font-weight: 700; }
+    .print-sub { font-size: 8.5pt; margin-top: 1mm; color: #333; }
+    .print-grid { display: grid; }
+    .print-cell {
+      border: 0.3mm dashed #666;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2mm;
+      overflow: hidden;
+      break-inside: avoid;
+    }
+    .print-qr { background: #fff; padding: 1.5mm; line-height: 0; }
+    .print-name {
+      font-weight: 700;
+      margin-top: 1.5mm;
+      max-width: 100%;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
+    }
+    .print-meta { color: #444; margin-top: 0.5mm; max-width: 100%; word-break: break-all; }
+  }
+`;
+
+function PrintSheet({ batchId, items, date }) {
+  const { cols, gap, cellW, cellH, qr } = sheetLayout(items.length);
+  const nameSize = qr >= 40 ? "10pt" : qr >= 28 ? "8pt" : "6.5pt";
+  const metaSize = qr >= 40 ? "7.5pt" : qr >= 28 ? "6.5pt" : "5.5pt";
+
+  return createPortal(
+    <div className="print-sheet">
+      <style>{PRINT_CSS}</style>
+      <div className="print-header">
+        <div className="print-title">Luggage Room: Item QR Labels</div>
+        <div className="print-sub">
+          {items.length} {items.length === 1 ? "item" : "items"} • Drop-off {batchId} • {date}
+        </div>
+        <div className="print-sub">
+          Cut along the dashed lines and attach one label to each item.
+        </div>
+      </div>
+
+      <div
+        className="print-grid"
+        style={{
+          gridTemplateColumns: `repeat(${cols}, ${cellW}mm)`,
+          gridAutoRows: `${cellH}mm`,
+          gap: `${gap}mm`,
+        }}
+      >
+        {items.map((item) => (
+          <div key={item.id} className="print-cell">
+            <div className="print-qr">
+              <QRCodeSVG
+                value={item.id}
+                size={256}
+                style={{ width: `${qr}mm`, height: `${qr}mm` }}
+              />
+            </div>
+            <div className="print-name" style={{ fontSize: nameSize }}>
+              {item.name}
+            </div>
+            <div className="print-meta" style={{ fontSize: metaSize }}>
+              {item.category} • {item.id}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/* ---------- Page ---------- */
+
 export default function RegisterItem() {
   const navigate = useNavigate();
   const { addItems, replaceBatch } = useBelongings();
@@ -69,6 +188,7 @@ export default function RegisterItem() {
   const [registered, setRegistered] = useState(null);
   const [editingBatchId, setEditingBatchId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const updateItem = (key, field, value) => {
     setItems((prev) =>
@@ -76,12 +196,38 @@ export default function RegisterItem() {
     );
   };
 
-  const handlePhotoChange = (key, e) => {
-    const file = e.target.files[0];
-    if (file) {
-      updateItem(key, "photo", file);
-      updateItem(key, "photoPreview", URL.createObjectURL(file));
-    }
+  // Adds the chosen photos to an item, never going over MAX_PHOTOS
+  const addPhotos = (key, e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ""; // lets the same photo be picked again later
+    if (!files.length) return;
+
+    const current = items.find((it) => it.key === key);
+    const room = MAX_PHOTOS - current.photos.length;
+    const added = files.slice(0, room).map((file) => ({
+      id: Math.random().toString(16).slice(2),
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setItems((prev) =>
+      prev.map((it) =>
+        it.key === key ? { ...it, photos: [...it.photos, ...added] } : it
+      )
+    );
+  };
+
+  const removePhoto = (key, photoId) => {
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.key !== key) return it;
+        const target = it.photos.find((p) => p.id === photoId);
+        if (target && target.preview.startsWith("blob:")) {
+          URL.revokeObjectURL(target.preview);
+        }
+        return { ...it, photos: it.photos.filter((p) => p.id !== photoId) };
+      })
+    );
   };
 
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
@@ -92,41 +238,56 @@ export default function RegisterItem() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setError("");
 
-    const batchId = generateBatchId();
-    const date = new Date().toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    try {
+      const batchId = generateBatchId();
+      const date = new Date().toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
 
-    const savedItems = await Promise.all(
-      items.map(async (it, index) => ({
-        id: `${batchId}-${index + 1}`,
-        batchId,
-        name: it.itemName,
-        category: it.category,
-        description: it.description,
-        photo: it.photo ? await fileToDataUrl(it.photo) : it.photoPreview,
-        status: "Pending Verification",
-        date,
-      }))
-    );
+      const savedItems = await Promise.all(
+        items.map(async (it, index) => {
+          // new photos get converted, photos already saved (when editing) are reused
+          const photos = await Promise.all(
+            it.photos.map((p) => (p.file ? fileToDataUrl(p.file) : p.preview))
+          );
+          return {
+            id: `${batchId}-${index + 1}`, // this is the value inside the item's own QR code
+            batchId,
+            name: it.itemName,
+            category: it.category,
+            description: it.description,
+            photos,
+            photo: photos[0] || null, // first photo, kept for older code that reads one photo
+            status: "Pending Verification",
+            date,
+          };
+        })
+      );
 
-    // TODO: connect to Tandin's belongings-registration API endpoint here, sending
-    // savedItems and receiving back the real batch ID the backend generated.
-    if (editingBatchId) {
-      replaceBatch(editingBatchId, savedItems);
-    } else {
-      addItems(savedItems);
+      // TODO: connect to Tandin's belongings-registration API endpoint here, sending
+      // savedItems and receiving back the real item IDs the backend generated.
+      if (editingBatchId) {
+        replaceBatch(editingBatchId, savedItems);
+      } else {
+        addItems(savedItems);
+      }
+
+      setEditingBatchId(null);
+      setRegistered({ batchId, date, items: savedItems });
+    } catch {
+      setError("One of the photos could not be processed. Please remove it and try again.");
+    } finally {
+      setSubmitting(false);
     }
-
-    setEditingBatchId(null);
-    setRegistered({ batchId, items: savedItems });
-    setSubmitting(false);
   };
 
   const handleEdit = () => {
+    // Reopen the form with this drop-off's details. The old drop-off stays saved
+    // until the student resubmits, then it is replaced by the new one.
     setEditingBatchId(registered.batchId);
     setItems(
       registered.items.map((it) => ({
@@ -134,20 +295,14 @@ export default function RegisterItem() {
         itemName: it.name,
         category: it.category,
         description: it.description,
-        photo: null,
-        photoPreview: it.photo,
+        photos: (it.photos || (it.photo ? [it.photo] : [])).map((src) => ({
+          id: Math.random().toString(16).slice(2),
+          file: null,
+          preview: src,
+        })),
       }))
     );
     setRegistered(null);
-  };
-
-  const handleDownload = () => {
-    const canvas = document.getElementById("batch-qr-canvas");
-    const url = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${registered.batchId}.png`;
-    link.click();
   };
 
   return (
@@ -202,8 +357,8 @@ export default function RegisterItem() {
                   <div className="rounded-2xl border border-line bg-panel p-5 shadow-md backdrop-blur-md sm:p-6">
                     <p className="text-sm text-body">
                       {editingBatchId
-                        ? "You're editing a drop-off. Resubmitting will replace it and generate a new QR code."
-                        : "Add details for each item you're storing. All items in this submission will share one QR code for drop-off."}
+                        ? "You're editing a drop-off. Resubmitting will replace it and generate new QR codes."
+                        : "Add details and up to 4 photos for each item you're storing. Every item gets its own QR code, and all of them print together on one A4 sheet."}
                     </p>
                   </div>
 
@@ -284,35 +439,58 @@ export default function RegisterItem() {
                             />
                           </div>
 
+                          {/* Photos: up to 4 per item */}
                           <div>
-                            <label className="mb-1 block text-sm font-medium text-body">
-                              Photo
-                            </label>
-                            <label
-                              htmlFor={`photo-upload-${item.key}`}
-                              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-muted/40 bg-field px-4 py-8 text-center hover:border-blue-400"
-                            >
-                              {item.photoPreview ? (
-                                <img
-                                  src={item.photoPreview}
-                                  alt="Preview"
-                                  className="h-32 w-32 rounded-lg object-cover"
-                                />
-                              ) : (
-                                <>
-                                  <Upload className="h-6 w-6 text-accent" />
-                                  <p className="text-sm text-body">
-                                    Click to upload a photo of your item
-                                  </p>
-                                  <p className="text-xs text-muted">PNG or JPG, up to 5MB</p>
-                                </>
+                            <div className="mb-1 flex items-center justify-between">
+                              <label className="text-sm font-medium text-body">Photos</label>
+                              <span className="text-xs text-muted">
+                                {item.photos.length}/{MAX_PHOTOS}
+                              </span>
+                            </div>
+                            <p className="mb-3 text-xs text-muted">
+                              Add up to 4 photos from different angles so your item can be
+                              identified.
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                              {item.photos.map((photo, photoIndex) => (
+                                <div
+                                  key={photo.id}
+                                  className="relative aspect-square overflow-hidden rounded-xl border border-line"
+                                >
+                                  <img
+                                    src={photo.preview}
+                                    alt={`Photo ${photoIndex + 1}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhoto(item.key, photo.id)}
+                                    className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                                    aria-label={`Remove photo ${photoIndex + 1}`}
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+
+                              {item.photos.length < MAX_PHOTOS && (
+                                <label
+                                  htmlFor={`photos-${item.key}`}
+                                  className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-muted/40 bg-field text-center hover:border-blue-400"
+                                >
+                                  <Camera className="h-6 w-6 text-accent" />
+                                  <span className="text-xs text-body">Add photo</span>
+                                </label>
                               )}
-                            </label>
+                            </div>
+
                             <input
-                              id={`photo-upload-${item.key}`}
+                              id={`photos-${item.key}`}
                               type="file"
                               accept="image/*"
-                              onChange={(e) => handlePhotoChange(item.key, e)}
+                              multiple
+                              onChange={(e) => addPhotos(item.key, e)}
                               className="hidden"
                             />
                           </div>
@@ -329,6 +507,12 @@ export default function RegisterItem() {
                       Add Another Item
                     </button>
 
+                    {error && (
+                      <p className="rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-600 dark:text-red-300">
+                        {error}
+                      </p>
+                    )}
+
                     <button
                       type="submit"
                       disabled={submitting}
@@ -342,7 +526,7 @@ export default function RegisterItem() {
                 </div>
               </>
             ) : (
-              <div className="mx-auto max-w-md rounded-2xl border border-line bg-panel p-6 text-center shadow-md backdrop-blur-md sm:p-8">
+              <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-panel p-6 text-center shadow-md backdrop-blur-md sm:p-8">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20">
                   <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-300" />
                 </div>
@@ -352,58 +536,44 @@ export default function RegisterItem() {
                     : "Item Registered!"}
                 </h2>
                 <p className="mt-1 text-sm text-body">
-                  One QR code covers everything in this drop-off.
+                  Each item has its own QR code. Print them all on one A4 sheet, cut them out,
+                  and attach one to each item.
                 </p>
 
-                <div className="mt-6 flex justify-center rounded-xl bg-white p-6">
-                  <QRCodeCanvas id="batch-qr-canvas" value={registered.batchId} size={180} />
-                </div>
-                <p className="mt-2 text-xs text-muted">{registered.batchId}</p>
-
-                <div className="mt-5 space-y-2 text-left">
+                {/* One QR code per item */}
+                <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
                   {registered.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 rounded-xl bg-field p-3"
-                    >
-                      {item.photo ? (
-                        <img
-                          src={item.photo}
-                          alt={item.name}
-                          className="h-10 w-10 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15">
-                          <Package className="h-5 w-5 text-accent" />
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-sm font-medium text-heading">{item.name}</p>
-                        <p className="text-xs text-muted">{item.category}</p>
+                    <div key={item.id} className="rounded-xl bg-field p-3">
+                      <div className="mx-auto w-fit rounded-lg bg-white p-2">
+                        <QRCodeSVG value={item.id} size={112} />
                       </div>
+                      <p className="mt-2 truncate text-sm font-medium text-heading">
+                        {item.name}
+                      </p>
+                      <p className="truncate text-xs text-muted">{item.category}</p>
+                      <p className="truncate text-[10px] text-muted">{item.id}</p>
                     </div>
                   ))}
                 </div>
 
                 <button
-                  onClick={handleEdit}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-line py-2.5 text-sm font-medium text-accent transition-colors hover:bg-hover"
+                  onClick={() => window.print()}
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-md transition-colors hover:bg-blue-600"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit Items
+                  <Printer className="h-4 w-4" />
+                  Print A4 QR Sheet
                 </button>
-
-                <p className="mt-5 text-xs text-muted">
-                  Print this QR code and attach it to your belongings, or show it on your
-                  phone at drop-off for the operator to scan.
+                <p className="mt-2 text-xs text-muted">
+                  In the print window choose paper size A4 and scale 100%. You can also choose
+                  "Save as PDF" to keep a copy.
                 </p>
 
                 <button
-                  onClick={handleDownload}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-md transition-colors hover:bg-blue-600"
+                  onClick={handleEdit}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-line py-2.5 text-sm font-medium text-accent transition-colors hover:bg-hover"
                 >
-                  <Download className="h-4 w-4" />
-                  Download QR Code
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit Items
                 </button>
 
                 <button
@@ -417,6 +587,14 @@ export default function RegisterItem() {
           </main>
         </div>
       </div>
+
+      {registered && (
+        <PrintSheet
+          batchId={registered.batchId}
+          items={registered.items}
+          date={registered.date}
+        />
+      )}
     </div>
   );
 }

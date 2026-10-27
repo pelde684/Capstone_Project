@@ -1,38 +1,44 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { api, getToken } from "../api";
+import { flattenDropOffs } from "../utils/belongings";
 
 const BelongingsContext = createContext(null);
-const STORAGE_KEY = "luggage-room-belongings";
 
+// Holds the logged-in student's drop-offs, loaded from the backend.
+// `items` is the same flat list the pages already use (name, category, photo, status, date ...).
 export function BelongingsProvider({ children }) {
-  const [items, setItems] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [dropOffs, setDropOffs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
+  const reload = useCallback(async () => {
+    if (!getToken()) {
+      setDropOffs([]);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const result = await api("/drop-offs/mine");
+      setDropOffs(result.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const clear = useCallback(() => setDropOffs([]), []);
+
+  // load on first open / page refresh when already logged in
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      console.warn("Could not save belongings, browser storage may be full.");
-    }
-  }, [items]);
+    reload();
+  }, [reload]);
 
-  // Add a new drop-off (one or more items sharing a batch QR)
-  const addItems = (newItems) => setItems((prev) => [...newItems, ...prev]);
-
-  // Replace an earlier drop-off after the student edits it
-  const replaceBatch = (oldBatchId, newItems) =>
-    setItems((prev) => [
-      ...newItems,
-      ...prev.filter((item) => item.batchId !== oldBatchId),
-    ]);
+  const items = useMemo(() => flattenDropOffs(dropOffs), [dropOffs]);
 
   return (
-    <BelongingsContext.Provider value={{ items, addItems, replaceBatch }}>
+    <BelongingsContext.Provider value={{ items, dropOffs, loading, error, reload, clear }}>
       {children}
     </BelongingsContext.Provider>
   );

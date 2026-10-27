@@ -11,6 +11,8 @@ import {
   X,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import { clearSession } from "../api";
+import { useBelongings } from "../context/BelongingsContext";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutGrid, path: "/dashboard" },
@@ -21,6 +23,7 @@ const navItems = [
 
 export default function Sidebar({ activePath }) {
   const navigate = useNavigate();
+  const { clear } = useBelongings();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleNavigate = (path) => {
@@ -29,7 +32,8 @@ export default function Sidebar({ activePath }) {
   };
 
   const handleLogout = () => {
-    // TODO: once Tandin's auth is ready, also clear the saved login token/session here
+    clearSession(); // forget the login token
+    clear(); // forget this student's items on screen
     setMobileOpen(false);
     navigate("/");
   };

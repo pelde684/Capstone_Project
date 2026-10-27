@@ -14,17 +14,23 @@ import {
   MessageSquare,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import { getUser } from "../api";
+import { useBelongings } from "../context/BelongingsContext";
 import loginBg from "../assets/college.jpeg";
-
-const stats = [
-  { label: "My Items", value: 5, icon: Briefcase },
-  { label: "Pending Verification", value: 1, icon: Clock },
-  { label: "Stored", value: 4, icon: PackageCheck },
-  { label: "Returned", value: 0, icon: CheckCircle2 },
-];
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const { items } = useBelongings();
+  const user = getUser();
+
+  // numbers come from the student's real items
+  const count = (label) => items.filter((i) => i.status === label).length;
+  const stats = [
+    { label: "My Items", value: items.length, icon: Briefcase },
+    { label: "Pending Verification", value: count("Pending Verification"), icon: Clock },
+    { label: "Stored", value: count("Stored"), icon: PackageCheck },
+    { label: "Returned", value: count("Returned"), icon: CheckCircle2 },
+  ];
 
   return (
     <div
@@ -49,15 +55,12 @@ export default function StudentDashboard() {
             <div className="flex items-center gap-5">
               <button className="relative text-body hover:text-heading">
                 <Bell className="h-5 w-5" />
-                <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white">
-                  1
-                </span>
               </button>
               <div className="flex items-center gap-2">
                 <UserCircle2 className="h-8 w-8 text-accent" />
                 <div className="leading-tight">
-                  <p className="text-sm font-semibold text-heading">Student</p>
-                  <p className="text-xs text-body">CST Luggage Room</p>
+                  <p className="text-sm font-semibold text-heading">{user?.name || "Student"}</p>
+                  <p className="text-xs text-body">{user?.studentId || "CST Luggage Room"}</p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted" />
               </div>
@@ -85,7 +88,7 @@ export default function StudentDashboard() {
                 <ClipboardList className="h-8 w-8" />
                 <h2 className="mt-4 text-lg font-semibold">Register Belongings</h2>
                 <p className="mt-1 text-sm text-blue-50">
-                  Add a new item and get a unique QR code for it instantly.
+                  Add your items and get one QR code for the whole drop-off.
                 </p>
                 <button
                   onClick={() => navigate("/register")}

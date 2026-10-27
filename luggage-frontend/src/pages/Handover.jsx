@@ -2,21 +2,23 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Ticket from './Ticket'
 
-export default function Handover({ items, setStatus }) {
+export default function Handover({ items, actions }) {
   const [q, setQ] = useSearchParams()
   const [find, setFind] = useState('')
   const [sid, setSid] = useState('')
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
 
   const allStored = items.filter(i => i.status === 'Stored')
   const stored = allStored.filter(i => Object.values(i).join(' ').toLowerCase().includes(find.toLowerCase()))
   const it = items.find(i => i.id === q.get('code'))
 
   const pick = (id) => { setQ({ code: id }); setSid(''); setErr('') }
-  const confirm = () => {
+  const confirm = async () => {
+    if (busy) return
     if (sid.trim() !== it.studentId) return setErr('That ID does not match the owner of this item. Ask the student to show their card.')
-    setStatus(it.id, 'Returned', `${it.id} handed over to ${it.owner}`)
-    setSid(''); setErr('')
+    setBusy(true)
+    try { await actions.collect(it); setSid(''); setErr('') } catch { /* message shown by App */ } finally { setBusy(false) }
   }
 
   return (<>
@@ -32,7 +34,7 @@ export default function Handover({ items, setStatus }) {
               const on = it?.id === p.id
               return (
                 <tr key={p.id} className={on ? 'sel' : ''} onClick={() => pick(p.id)}>
-                  <td className="nw">{p.id}</td><td>{p.name}</td><td>{p.owner}</td>
+                  <td className="nw">{p.tag}</td><td>{p.name}</td><td>{p.owner}</td>
                   <td><button className={'btn sm ' + (on ? 'on' : 'ghost')} onClick={(e) => { e.stopPropagation(); pick(p.id) }}>{on ? 'Selected' : 'Select'}</button></td>
                 </tr>
               )
@@ -51,7 +53,7 @@ export default function Handover({ items, setStatus }) {
                 <input value={sid} onChange={e => { setSid(e.target.value); setErr('') }} placeholder="Student ID" onKeyDown={e => e.key === 'Enter' && confirm()} />
               </label>
               {err && <p style={{ color: 'var(--red)', marginTop: 0 }} role="alert">{err}</p>}
-              <button className="btn big" disabled={!sid.trim()} onClick={confirm}>Confirm handover</button>
+              <button className="btn big" disabled={!sid.trim() || busy} onClick={confirm}>{busy ? 'Saving…' : 'Confirm handover'}</button>
             </>}
             {it.status === 'Returned' && (
               <div className="row" style={{ alignItems: 'center' }}>
@@ -70,7 +72,9 @@ export default function Handover({ items, setStatus }) {
         <header><h1>Handover receipt</h1><div className="muted">CST Luggage Room</div></header>
         <table>
           <tbody>
-            <tr><th>Tag number</th><td>{it.id}</td></tr>
+            <tr><th>Tag number</th><td>{it.tag}</td></tr>
+            {it.location && <tr><th>Collected from</th><td>{it.location}</td></tr>}
+            <tr><th>Date</th><td>{it.returnedOn || new Date().toLocaleDateString('en-CA')}</td></tr>
             <tr><th>Item</th><td>{it.name}</td></tr>
             <tr><th>Description</th><td>{it.description}</td></tr>
             <tr><th>Owner</th><td>{it.owner}</td></tr>

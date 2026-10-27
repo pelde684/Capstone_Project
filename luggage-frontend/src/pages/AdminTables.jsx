@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { ChevronDown, CalendarDays, X } from 'lucide-react'
-import { staff, students } from '../data'
 
 const statusOrder = ['Pending', 'Stored', 'Returned', 'Rejected']
 
@@ -10,6 +9,8 @@ const heads = {
   category: 'Category',
   owner: 'Owner',
   studentId: 'Student ID',
+  hostel: 'Hostel',
+  location: 'Shelf',
   date: 'Registered',
   status: 'Status',
   verifiedBy: 'Verified by'
@@ -47,7 +48,7 @@ function Day({ id, title, meta, open, toggle, children }) {
   )
 }
 
-export default function AdminTables({ items, initial = 'Items' }) {
+export default function AdminTables({ items, students, staff, initial = 'Items' }) {
   const [tab, setTab] = useState(initial)
   const [q, setQ] = useState('')
   const [st, setSt] = useState('All')
@@ -74,7 +75,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
   const doneBy = (email) => items.filter(i => i.verifiedBy === email)
 
   const nameOf = (email) =>
-    staff.find(s => s.email === email)?.name || '-'
+    staff.find(s => s.email === email)?.name || email || '-'
 
   const now = new Date().toLocaleString('en-GB', {
     dateStyle: 'long',
@@ -98,7 +99,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
       who: { name: i.owner, key: i.studentId },
       verb: 'registered',
       item: i.name,
-      tag: i.id
+      tag: i.tag
     },
 
     i.verifiedOn && {
@@ -107,7 +108,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
       who: { name: nameOf(i.verifiedBy), key: i.verifiedBy },
       verb: i.status === 'Rejected' ? 'rejected' : 'approved',
       item: i.name,
-      tag: i.id,
+      tag: i.tag,
       from: { name: i.owner, key: i.studentId }
     },
 
@@ -117,7 +118,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
       who: { name: i.owner, key: i.studentId },
       verb: 'collected',
       item: i.name,
-      tag: i.id
+      tag: i.tag
     }
   ].filter(Boolean))
 
@@ -175,6 +176,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
   const val = (i, k) =>
     k === 'verifiedBy'
       ? (i.verifiedBy ? nameOf(i.verifiedBy) : '')
+      : k === 'id' ? i.tag
       : (i[k] || '')
 
   const itemRows = items
@@ -193,7 +195,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
 
   const cols = it && tab === 'Items'
     ? ['id', 'name', 'status']
-    : ['id', 'name', 'category', 'owner', 'studentId', 'date', 'status', 'verifiedBy']
+    : ['id', 'name', 'category', 'owner', 'studentId', 'hostel', 'location', 'date', 'status', 'verifiedBy']
 
   // Student filtering
   const filteredStudents = students.filter(s =>
@@ -220,7 +222,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
       <div className="shead">
         <div>
           <h3>{stu.name}</h3>
-          <p className="muted">{stu.studentId}, {stu.programme}</p>
+          <p className="muted">{stu.studentId}{stu.hostel ? `, ${stu.hostel}` : ''}</p>
         </div>
         <button className="btn ghost sm" onClick={() => setSel(null)}>
           Close
@@ -253,7 +255,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
           </div>
           <p>{i.description}</p>
           <small className="muted">
-            Tag {i.id}, {i.category}, registered {i.date}
+            Tag {i.tag}, {i.category}, registered {i.date}{i.location ? `, ${i.location}` : ''}
             {i.verifiedBy && `. Verified by ${nameOf(i.verifiedBy)}`}
           </small>
         </div>
@@ -315,7 +317,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
               </div>
               <p>{i.description}</p>
               <small className="muted">
-                {i.owner}, {i.studentId}. Tag {i.id}.
+                {i.owner}, {i.studentId}. Tag {i.tag}.
                 Verified {i.verifiedOn}. Now: {i.status.toLowerCase()}
               </small>
             </div>
@@ -405,7 +407,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
                     <tr>
                       {stu
                         ? <><th>Name</th><th>Student ID</th><th>Items</th></>
-                        : <><th>Student ID</th><th>Name</th><th>Programme</th><th>Items</th></>
+                        : <><th>Student ID</th><th>Name</th><th>Hostel</th><th>Items</th></>
                       }
                     </tr>
                   </thead>
@@ -436,7 +438,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
                         >
                           {stu
                             ? <>{nameCell}<td>{s.studentId}</td><td>{n}</td></>
-                            : <><td>{s.studentId}</td>{nameCell}<td>{s.programme}</td><td>{n}</td></>
+                            : <><td>{s.studentId}</td>{nameCell}<td>{s.hostel || '-'}</td><td>{n}</td></>
                           }
                         </tr>
                       )
@@ -519,7 +521,8 @@ export default function AdminTables({ items, initial = 'Items' }) {
                               ? <span className={'badge ' + r[c]}>{r[c]}</span>
                               : c === 'verifiedBy'
                                 ? (r.verifiedBy ? nameOf(r.verifiedBy) : '-')
-                                : r[c]
+                                : c === 'id' ? r.tag
+                                : r[c] || '-'
                             }
                           </td>
                         ))}
@@ -535,7 +538,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
                 <div className="shead">
                   <div>
                     <h3>{it.name}</h3>
-                    <p className="muted">Tag {it.id}, {it.category}</p>
+                    <p className="muted">Tag {it.tag}, {it.category}</p>
                   </div>
                   <button className="btn ghost sm" onClick={() => setSel(null)}>
                     Close
@@ -546,11 +549,15 @@ export default function AdminTables({ items, initial = 'Items' }) {
                   <span className={'badge ' + it.status}>{it.status}</span>
                 </div>
 
+                {it.photo && <img src={it.photo} alt={`Photo of ${it.name}`} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, marginTop: 14 }} />}
                 <p style={{ margin: '14px 0 0' }}>{it.description}</p>
 
                 <dl className="facts" style={{ gridTemplateColumns: '1fr 1fr' }}>
                   <div><dt>Owner</dt><dd>{it.owner}</dd></div>
                   <div><dt>Student ID</dt><dd>{it.studentId}</dd></div>
+                  {it.hostel && <div><dt>Hostel</dt><dd>{it.hostel}</dd></div>}
+                  {it.location && <div><dt>Shelf</dt><dd>{it.location}</dd></div>}
+                  {it.semester && <div><dt>Semester</dt><dd>{it.semester}</dd></div>}
                 </dl>
 
                 <h4 className="shead2">What happened</h4>
@@ -570,7 +577,7 @@ export default function AdminTables({ items, initial = 'Items' }) {
 
                   {it.status !== 'Pending' && (
                     <li className={it.status === 'Rejected' ? 'bad' : 'done'}>
-                      <b>{it.status === 'Rejected' ? 'Rejected' : 'Verified and stored'}</b>
+                      <b>{it.status === 'Rejected' ? `Rejected${it.rejectReason ? `: ${it.rejectReason}` : ''}` : 'Verified and stored'}</b>
                       <small>
                         {it.verifiedBy ? `${nameOf(it.verifiedBy)}, ` : ''}
                         {it.verifiedOn || 'date not recorded'}

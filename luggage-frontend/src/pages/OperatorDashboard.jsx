@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { api } from '../api'
 
 const tasks = [
   'Check the pending registrations',
@@ -32,14 +33,22 @@ export default function OperatorDashboard({ items }) {
     ['Returned', c('Returned'), 'Handed back to students'],
   ]
 
-  const find = (e) => {
+  // Looks the tag up in the backend (short code or full QR value) and opens the next step
+  const find = async (e) => {
     e.preventDefault()
-    const id = code.trim().toUpperCase()
-    const it = items.find(i => i.id === id)
-    if (!it) return setErr(`No item with the number “${code}”. Check the tag and try again.`)
-    if (it.status === 'Pending') return nav(`/operator/verify?code=${id}`)
-    if (it.status === 'Stored') return nav(`/operator/handover?code=${id}`)
-    setErr(`${id} is already ${it.status.toLowerCase()}.`)
+    const value = code.trim()
+    if (!value) return
+    try {
+      const r = await api('/scan', { method: 'POST', body: { qrValue: value } })
+      const found = r.items.map(x => items.find(i => i.id === String(x.id))).filter(Boolean)
+      const todo = found.find(i => i.status === 'Pending' || i.status === 'Rejected')
+      if (todo) return nav(`/operator/verify?code=${todo.id}`)
+      const stored = found.find(i => i.status === 'Stored')
+      if (stored) return nav(`/operator/handover?code=${stored.id}`)
+      setErr(found.length ? `Everything on ${value.toUpperCase()} has already been returned.` : `No active items on ${value.toUpperCase()}.`)
+    } catch (ex) {
+      setErr(ex.message === 'QR code not recognised' ? `No items with the code “${value}”. Check the tag and try again.` : ex.message)
+    }
   }
   const toggle = (t) => setDone(d => d.includes(t) ? d.filter(x => x !== t) : [...d, t])
 
@@ -67,7 +76,7 @@ export default function OperatorDashboard({ items }) {
           : <div className="plist">{pending.map(p => (
             <div className="prow" key={p.id}>
               <div><b>{p.name}</b><small>{p.owner}, {p.studentId}</small></div>
-              <div style={{ textAlign: 'right' }}><small style={{ display: 'block' }}>{p.id}</small><Link className="tlink" to={`/operator/verify?code=${p.id}`}>Review</Link></div>
+              <div style={{ textAlign: 'right' }}><small style={{ display: 'block' }}>{p.tag}</small><Link className="tlink" to={`/operator/verify?code=${p.id}`}>Review</Link></div>
             </div>
           ))}</div>}
       </div>
@@ -76,7 +85,7 @@ export default function OperatorDashboard({ items }) {
         <div className="glass card">
           <h3>Look up a tag</h3>
           <form className="row" onSubmit={find}>
-            <input style={{ flex: 1 }} value={code} onChange={e => { setCode(e.target.value); setErr('') }} placeholder="QR-2026-007" aria-label="Tag number" />
+            <input style={{ flex: 1 }} value={code} onChange={e => { setCode(e.target.value); setErr('') }} placeholder="8D40E85C" aria-label="Tag number" />
             <button className="btn" type="submit">Open</button>
           </form>
           {err && <p style={{ color: 'var(--red)', marginBottom: 0 }} role="alert">{err}</p>}
@@ -98,7 +107,7 @@ export default function OperatorDashboard({ items }) {
         <div className="tw"><table>
           <thead><tr><th>Tag</th><th>Item</th><th>Owner</th><th>Status</th></tr></thead>
           <tbody>{recent.map(i => (
-            <tr key={i.id}><td className="nw">{i.id}</td><td>{i.name}</td><td>{i.owner}</td><td><span className={'badge ' + i.status}>{i.status}</span></td></tr>
+            <tr key={i.id}><td className="nw">{i.tag}</td><td>{i.name}</td><td>{i.owner}</td><td><span className={'badge ' + i.status}>{i.status}</span></td></tr>
           ))}</tbody>
         </table></div>
       </div>

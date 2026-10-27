@@ -7,25 +7,20 @@ export default function Login({ onLogin }) {
   const [pw, setPw] = useState('')
   const [err, setErr] = useState('')
 
-  const submit = (e) => {
+  const [busy, setBusy] = useState(false)
+
+  // Checks the email and password with the backend. Only operators and admins get in here.
+  const submit = async (e) => {
     e.preventDefault()
-    const v = id.trim().toLowerCase()
-
-    if (v.startsWith('admin')) {
-      return onLogin({ role: 'Admin', id: v })
-    }
-
-    if (v.startsWith('operator')) {
-      return onLogin({ role: 'Operator', id: v })
-    }
-
-    setErr('Use an operator or admin email. Students log in on the student site.')
-  }
-
-  const demo = (role) => {
-    setId(role + '@gmail.com')
-    setPw('password')
+    setBusy(true)
     setErr('')
+    try {
+      await onLogin(id.trim().toLowerCase(), pw)
+    } catch (ex) {
+      setErr(ex.message === 'Invalid credentials' ? 'Wrong email or password.' : ex.message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -58,7 +53,7 @@ export default function Login({ onLogin }) {
                 setId(e.target.value)
                 setErr('')
               }}
-              placeholder="operator@gmail.com"
+              placeholder="operator@college.edu"
               required
             />
           </label>
@@ -80,27 +75,12 @@ export default function Login({ onLogin }) {
             </div>
           )}
 
-          <button className="btn" type="submit">
-            Log in
+          <button className="btn" type="submit" disabled={busy}>
+            {busy ? 'Logging in…' : 'Log in'}
           </button>
 
           <div className="muted" style={{ fontSize: 14 }}>
-            Demo login:{' '}
-            <button
-              type="button"
-              className="link"
-              onClick={() => demo('operator')}
-            >
-              Operator
-            </button>
-            {' '}or{' '}
-            <button
-              type="button"
-              className="link"
-              onClick={() => demo('admin')}
-            >
-              Admin
-            </button>
+            Students log in on the student site.
           </div>
         </form>
       </div>

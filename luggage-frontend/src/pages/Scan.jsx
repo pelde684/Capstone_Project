@@ -2,23 +2,40 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
 import Ticket from './Ticket'
+import { api } from '../api'
+import { shortCode } from '../adapt'
 
 export default function Scan({ items }) {
   const scanner = useRef(null)
   const running = useRef(false)
   const [live, setLive] = useState(false)
   const [code, setCode] = useState('')
-  const [hitId, setHitId] = useState(null)
+  const [hitIds, setHitIds] = useState([])
+  const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [recent, setRecent] = useState([])
 
-  const hit = items.find(i => i.id === hitId)
+  // One QR covers every item the student handed in together, so a scan can return several items.
+  const hits = hitIds.map(id => items.find(i => i.id === id)).filter(Boolean)
 
-  const lookup = (raw) => {
-    const id = String(raw).trim().toUpperCase()
-    if (!items.some(i => i.id === id)) { setHitId(null); return setErr(`No item with the number “${raw}”. Check the tag and try again.`) }
-    setErr(''); setHitId(id); setCode('')
-    setRecent(r => [id, ...r.filter(x => x !== id)].slice(0, 5))
+  // Accepts the full QR value (camera) or the 8-character code printed under it (typed)
+  const lookup = async (raw) => {
+    const value = String(raw).trim()
+    if (!value) return
+    setBusy(true)
+    try {
+      const r = await api('/scan', { method: 'POST', body: { qrValue: value } })
+      const ids = r.items.map(i => String(i.id))
+      if (!ids.length) throw new Error('This QR has no active items. The student may have cancelled them.')
+      setErr(''); setHitIds(ids); setCode('')
+      const tag = shortCode(r.dropOff.qrValue)
+      setRecent(list => [tag, ...list.filter(x => x !== tag)].slice(0, 5))
+    } catch (e) {
+      setHitIds([])
+      setErr(e.message === 'QR code not recognised' ? `No items with the code “${value}”. Check the tag and try again.` : e.message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   const stop = async () => {
@@ -50,8 +67,8 @@ export default function Scan({ items }) {
 
   useEffect(() => () => { if (running.current) scanner.current?.stop().catch(() => {}) }, [])
 
-  const action = hit?.status === 'Pending' ? ['Open verification', `/operator/verify?code=${hit.id}`]
-    : hit?.status === 'Stored' ? ['Start handover', `/operator/handover?code=${hit.id}`] : null
+  const actionFor = (hit) => hit.status === 'Pending' || hit.status === 'Rejected' ? ['Open verification', `/operator/verify?code=${hit.id}`]
+    : hit.status === 'Stored' ? ['Start handover', `/operator/handover?code=${hit.id}`] : null
 
   return (
     <div className="grid2">
@@ -71,8 +88,8 @@ export default function Scan({ items }) {
         <div className="glass card">
           <h3>Type the tag number</h3>
           <form className="row" onSubmit={(e) => { e.preventDefault(); lookup(code) }}>
-            <input style={{ flex: 1 }} value={code} onChange={e => { setCode(e.target.value); setErr('') }} placeholder="QR-2026-007" aria-label="Tag number" />
-            <button className="btn" type="submit">Find item</button>
+            <input style={{ flex: 1 }} value={code} onChange={e => { setCode(e.target.value); setErr('') }} placeholder="8D40E85C" aria-label="Tag number" />
+            <button className="btn" type="submit" disabled={busy}>{busy ? 'Looking…' : 'Find items'}</button>
           </form>
           {err && <p style={{ color: 'var(--red)', marginBottom: 0 }} role="alert">{err}</p>}
           {recent.length > 0 && <>
@@ -81,13 +98,19 @@ export default function Scan({ items }) {
           </>}
         </div>
 
-        {hit ? (
-          <Ticket it={hit} tone={hit.status === 'Stored' ? 'good' : hit.status === 'Rejected' ? 'bad' : ''}>
-            {action
-              ? <Link className="btn" to={action[1]}>{action[0]}</Link>
-              : <p className="muted" style={{ margin: 0 }}>This item is already {hit.status.toLowerCase()}. Nothing more to do.</p>}
-          </Ticket>
-        ) : (
+        {hits.length > 0 ? (<>
+          {hits.length > 1 && <p className="muted" style={{ margin: 0 }}>This tag covers {hits.length} items.</p>}
+          {hits.map(hit => {
+            const action = actionFor(hit)
+            return (
+              <Ticket key={hit.id} it={hit} tone={hit.status === 'Stored' ? 'good' : hit.status === 'Rejected' ? 'bad' : ''}>
+                {action
+                  ? <Link className="btn" to={action[1]}>{action[0]}</Link>
+                  : <p className="muted" style={{ margin: 0 }}>This item is already {hit.status.toLowerCase()}. Nothing more to do.</p>}
+              </Ticket>
+            )
+          })}
+        </>) : (
           <div className="glass card">
             <h3>Scanning tips</h3>
             <ul className="tips">

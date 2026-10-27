@@ -1,9 +1,8 @@
 import { Users, Briefcase, Clock, CheckCircle2, BarChart3, FileText } from 'lucide-react'
-import { students } from '../data'
 import { semesterStart } from '../period'
 import { Stats, Action } from './Stats'
 
-export default function AdminDashboard({ items }) {
+export default function AdminDashboard({ items, students }) {
   const c = (s) => items.filter(i => i.status === s).length
   const handled = c('Stored') + c('Returned')
   const pct = handled ? Math.round((c('Returned') / handled) * 100) : 0

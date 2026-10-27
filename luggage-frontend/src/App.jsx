@@ -185,10 +185,10 @@ export default function App() {
       <Route path="/operator/scan" element={op('Scan QR', 'Scan a student’s QR code to open their items', <Scan items={items} />)} />
       <Route path="/operator/verify" element={op('Verification', 'Check each item before it is stored', <Verify items={items} locations={locations} actions={actions} />)} />
       <Route path="/operator/handover" element={op('Handover', 'Return stored items to their owners', <Handover items={items} actions={actions} />)} />
-      <Route path="/operator/report" element={op('Shift report', 'Print a summary of the luggage room', <OperatorReport items={items} />)} />
+      <Route path="/operator/report" element={op('Shift report', 'What happened during a shift, ready to print', <OperatorReport items={items} locations={locations} user={user} />)} />
       <Route path="/admin" element={ad('Admin Dashboard', 'QR Luggage Room Management System', <AdminDashboard items={items} students={students} />)} />
       <Route path="/admin/students" element={ad('Students', 'See who is registered and update their details', <AdminTables items={items} students={students} staff={staff} initial="Students" />)} />
-      <Route path="/admin/reports" element={ad('Reports', 'Look at luggage and handover numbers', <AdminReports items={items} />)} />
+      <Route path="/admin/reports" element={ad('Reports', 'Look at luggage and handover numbers', <AdminReports staff={staff} locations={locations} user={user} />)} />
       <Route path="/admin/records" element={ad('System records', 'Follow what is happening in the luggage room', <AdminTables items={items} students={students} staff={staff} initial="Items" />)} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

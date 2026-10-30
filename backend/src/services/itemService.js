@@ -18,6 +18,8 @@ const ITEM_SELECT = `
   SELECT i.item_id AS id, i.item_name AS name, i.description, i.quantity, i.status,
          i.registered_at AS registeredAt, i.updated_at AS updatedAt,
          i.photograph_path AS photographPath,
+         (SELECT GROUP_CONCAT(CONCAT(p.photo_id, ':', p.public_id) ORDER BY p.position SEPARATOR '|')
+            FROM item_photos p WHERE p.item_id = i.item_id) AS photoList,
          i.owner_id AS ownerId, i.drop_off_id AS dropOffId, q.qr_value AS qrValue,
          u.full_name AS ownerName, u.student_id AS ownerStudentId,
          u.hostel_id AS ownerHostelId, h.hostel_name AS ownerHostel,
@@ -26,11 +28,25 @@ const ITEM_SELECT = `
          i.location_id AS locationId, l.location_name AS locationName
   ${ITEM_JOINS}`;
 
-// Swap the stored Cloudinary public id for a signed URL.
+// Turns "12:luggage/items/a|13:luggage/items/b" into [{ id: 12, publicId: "luggage/items/a" }, ...] (photo order)
+function parsePhotoList(list) {
+  if (!list) return [];
+  return list.split("|").map((part) => {
+    const at = part.indexOf(":");
+    return { id: Number(part.slice(0, at)), publicId: part.slice(at + 1) };
+  });
+}
+
+// Swap the stored Cloudinary public ids for signed URLs.
+// photos = all photos in order (up to 4), photoIds = their ids (used when editing),
+// photographUrl = photo 1 (kept so older pages keep working).
 function present(row) {
   if (!row) return null;
-  const { photographPath, ...rest } = row;
-  return { ...rest, photographUrl: signedPhotoUrl(photographPath) };
+  const { photographPath, photoList, ...rest } = row;
+  let list = parsePhotoList(photoList);
+  if (!list.length && photographPath) list = [{ id: null, publicId: photographPath }];
+  const photos = list.map((p) => signedPhotoUrl(p.publicId));
+  return { ...rest, photographUrl: photos[0] || null, photos, photoIds: list.map((p) => p.id) };
 }
 
 async function getItemById(id) {

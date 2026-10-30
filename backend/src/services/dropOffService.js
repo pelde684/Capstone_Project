@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const db = require("../config/db");
 const HttpError = require("../utils/httpError");
 const { STATUS } = require("../utils/status");
-const { uploadItemPhoto, destroyPhoto } = require("../utils/photo");
+const { uploadItemPhoto, destroyPhoto, MAX_PHOTOS } = require("../utils/photo");
 const { ITEM_SELECT, present } = require("./itemService");
 
 const MAX_ITEMS = 20;
@@ -16,10 +16,18 @@ function cleanSpec(raw, index) {
   if (!name || name.length > 150) throw new HttpError(400, `Item ${n}: name is required (max 150 characters)`);
   if (!raw?.categoryId) throw new HttpError(400, `Item ${n}: categoryId is required`);
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new HttpError(400, `Item ${n}: quantity must be between 1 and 100`);
-  return { id: raw.id ? Number(raw.id) : null, name, categoryId: raw.categoryId, quantity, description };
+  let photoIds = null; // editing only: existing photos to keep, in this order (omit = keep them all)
+  if (raw?.photoIds !== undefined && raw.photoIds !== null) {
+    if (!Array.isArray(raw.photoIds) || raw.photoIds.length > MAX_PHOTOS || raw.photoIds.some((x) => !Number.isInteger(Number(x)) || Number(x) < 1))
+      throw new HttpError(400, `Item ${n}: photoIds must be a list of up to ${MAX_PHOTOS} photo ids`);
+    photoIds = raw.photoIds.map(Number);
+    if (new Set(photoIds).size !== photoIds.length) throw new HttpError(400, `Item ${n}: the same photo is listed twice`);
+  }
+  return { id: raw.id ? Number(raw.id) : null, name, categoryId: raw.categoryId, quantity, description, photoIds };
 }
 
-// multipart field "items" = JSON list; photos are files named photo_0, photo_1 ... (same order as the list)
+// multipart field "items" = JSON list; photos are files named photo_0, photo_1 ... (same order as the list).
+// Each item can have up to 4 photos: send the same field name up to 4 times (photo_0, photo_0, ...), first = main photo.
 function parseItems(req) {
   let list;
   try { list = typeof req.body?.items === "string" ? JSON.parse(req.body.items) : req.body?.items; }
@@ -33,21 +41,42 @@ function photosByIndex(req) {
   const map = {};
   for (const f of req.files || []) {
     const m = /^photo_(\d+)$/.exec(f.fieldname);
-    if (m) map[Number(m[1])] = f.buffer;
+    if (m) (map[Number(m[1])] ||= []).push(f.buffer);
   }
+  for (const [i, list] of Object.entries(map))
+    if (list.length > MAX_PHOTOS) throw new HttpError(400, `Item ${Number(i) + 1}: at most ${MAX_PHOTOS} photos per item`);
   return map;
 }
 
 // ---------- writes ----------
-async function insertItem(conn, ownerId, changedBy, dropOffId, spec, buffer, uploaded) {
+// Uploads the files to Cloudinary; their ids go in `uploaded` so they can be removed if saving fails.
+async function uploadAll(buffers, itemId, uploaded) {
+  const ids = [];
+  for (const b of buffers) {
+    const up = await uploadItemPhoto(b, itemId);
+    uploaded.push(up.public_id);
+    ids.push(up.public_id);
+  }
+  return ids;
+}
+
+// Replaces an item's photo list with these Cloudinary ids, in order (position 1 = main photo).
+// items.photograph_path always holds photo 1 so older code keeps working.
+async function setItemPhotos(conn, itemId, publicIds) {
+  await conn.query("DELETE FROM item_photos WHERE item_id = ?", [itemId]);
+  if (publicIds.length)
+    await conn.query("INSERT INTO item_photos (item_id, public_id, position) VALUES ?",
+      [publicIds.map((id, i) => [itemId, id, i + 1])]);
+  await conn.query("UPDATE items SET photograph_path = ? WHERE item_id = ?", [publicIds[0] || null, itemId]);
+}
+
+async function insertItem(conn, ownerId, changedBy, dropOffId, spec, buffers, uploaded) {
   const [ins] = await conn.query(
     `INSERT INTO items (owner_id, category_id, drop_off_id, item_name, description, quantity, status, registered_at, updated_at)
      VALUES (?,?,?,?,?,?,?,NOW(),NOW())`,
     [ownerId, spec.categoryId, dropOffId, spec.name, spec.description, spec.quantity, STATUS.REGISTERED]);
   const itemId = ins.insertId;
-  const up = await uploadItemPhoto(buffer, itemId);
-  uploaded.push(up.public_id);
-  await conn.query("UPDATE items SET photograph_path = ? WHERE item_id = ?", [up.public_id, itemId]);
+  await setItemPhotos(conn, itemId, await uploadAll(buffers, itemId, uploaded));
   await addHistory(conn, itemId, changedBy, null, STATUS.REGISTERED, "Item registered by student");
   return itemId;
 }
@@ -59,7 +88,7 @@ const addHistory = (conn, itemId, changedBy, oldS, newS, remarks) =>
 
 // One drop-off = one QR shared by all its items. Everything succeeds or nothing is saved.
 async function createDropOff(user, specs, photos) {
-  specs.forEach((s, i) => { if (!photos[i]) throw new HttpError(400, `Item ${i + 1}: a photograph is required (field name: photo_${i})`); });
+  specs.forEach((s, i) => { if (!photos[i]?.length) throw new HttpError(400, `Item ${i + 1}: at least one photograph is required (field name: photo_${i})`); });
   const conn = await db.getConnection();
   const uploaded = [];
   try {
@@ -101,6 +130,7 @@ async function lockEditable(conn, user, dropOffId) {
 async function updateDropOff(user, dropOffId, specs, photos) {
   const conn = await db.getConnection();
   const uploaded = [];
+  const replaced = []; // old photos no longer used; removed from Cloudinary after saving
   try {
     await conn.beginTransaction();
     const { d, active } = await lockEditable(conn, user, dropOffId);
@@ -111,7 +141,7 @@ async function updateDropOff(user, dropOffId, specs, photos) {
         if (!activeIds.has(s.id)) throw new HttpError(400, `Item ${i + 1}: id ${s.id} is not part of this drop-off`);
         if (keep.has(s.id)) throw new HttpError(400, `Item ${i + 1}: id ${s.id} appears twice`);
         keep.add(s.id);
-      } else if (!photos[i]) throw new HttpError(400, `Item ${i + 1}: a photograph is required for a new item (field name: photo_${i})`);
+      } else if (!photos[i]?.length) throw new HttpError(400, `Item ${i + 1}: at least one photograph is required for a new item (field name: photo_${i})`);
     });
 
     for (let i = 0; i < specs.length; i++) {
@@ -119,10 +149,7 @@ async function updateDropOff(user, dropOffId, specs, photos) {
       if (s.id) {
         await conn.query("UPDATE items SET item_name = ?, category_id = ?, description = ?, quantity = ?, updated_at = NOW() WHERE item_id = ?",
           [s.name, s.categoryId, s.description, s.quantity, s.id]);
-        if (photos[i]) {
-          const up = await uploadItemPhoto(photos[i], s.id);
-          await conn.query("UPDATE items SET photograph_path = ? WHERE item_id = ?", [up.public_id, s.id]);
-        }
+        await editPhotos(conn, s, photos[i] || [], i, uploaded, replaced);
         await addHistory(conn, s.id, user.id, STATUS.REGISTERED, STATUS.REGISTERED, "Item details edited");
       } else {
         await insertItem(conn, d.owner_id, user.id, dropOffId, s, photos[i], uploaded);
@@ -142,6 +169,32 @@ async function updateDropOff(user, dropOffId, specs, photos) {
   } finally {
     conn.release();
   }
+  await Promise.all(replaced.map((p) => destroyPhoto(p).catch(() => {})));
+}
+
+// Photos of an existing item while editing:
+//   photoIds given -> keep exactly those (in that order), then add the new files
+//   photoIds left out + new files -> the new files replace all old photos (one-photo pages work as before)
+//   photoIds left out + no files -> photos stay as they are
+async function editPhotos(conn, spec, files, index, uploaded, replaced) {
+  const n = index + 1;
+  const [rows] = await conn.query("SELECT photo_id, public_id FROM item_photos WHERE item_id = ? ORDER BY position FOR UPDATE", [spec.id]);
+  if (spec.photoIds === null && !files.length) return;
+
+  let kept = [];
+  if (spec.photoIds) {
+    const byId = new Map(rows.map((r) => [r.photo_id, r.public_id]));
+    for (const id of spec.photoIds) {
+      if (!byId.has(id)) throw new HttpError(400, `Item ${n}: photo ${id} does not belong to this item`);
+      kept.push(byId.get(id));
+    }
+  }
+  if (kept.length + files.length < 1) throw new HttpError(400, `Item ${n}: an item needs at least one photo`);
+  if (kept.length + files.length > MAX_PHOTOS) throw new HttpError(400, `Item ${n}: at most ${MAX_PHOTOS} photos per item`);
+
+  const finalIds = [...kept, ...(await uploadAll(files, spec.id, uploaded))];
+  await setItemPhotos(conn, spec.id, finalIds);
+  replaced.push(...rows.map((r) => r.public_id).filter((p) => !finalIds.includes(p)));
 }
 
 async function cancelDropOff(user, dropOffId) {

@@ -23,7 +23,7 @@ exports.create = asyncHandler(async (req, res) => {
   const { name, description = null, categoryId } = req.body || {};
   if (!req.file) throw new HttpError(400, "A photograph of the item is required (field name: photo)");
   const spec = svc.parseItems({ body: { items: [{ name, description, categoryId, quantity: req.body?.quantity }] } });
-  const r = await svc.createDropOff(req.user, spec, { 0: req.file.buffer });
+  const r = await svc.createDropOff(req.user, spec, { 0: [req.file.buffer] });
   res.status(201).json({ id: r.itemIds[0], dropOffId: r.dropOffId, qrValue: r.qrValue, status: STATUS.REGISTERED });
 });
 

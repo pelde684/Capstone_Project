@@ -13,6 +13,7 @@ const lookup = require("../controllers/lookup.controller");
 const dropOffs = require("../controllers/dropoff.controller");
 const reports = require("../controllers/report.controller");
 const shiftReports = require("../controllers/shiftReport.controller");
+const complaints = require("../controllers/complaint.controller");
 
 const staff = authorize("Operator", "Admin");
 const admin = authorize("Admin");
@@ -78,6 +79,13 @@ router.get("/stats", staff, lookup.stats);
 // Shift reports: operators submit their own, operators and admins can read them
 router.post("/shift-reports", authorize("Operator"), shiftReports.submit);
 router.get("/shift-reports", staff, shiftReports.list);
+
+// Complaints: students raise them, the admin forwards and resolves them
+router.post("/complaints", student, complaints.create);
+router.get("/complaints/mine", student, complaints.listMine);
+router.get("/complaints", admin, complaints.list);
+router.get("/complaints/:id", complaints.getOne);
+router.patch("/complaints/:id", admin, complaints.update);
 
 // Reports (Admin)
 router.get("/reports/operator-activity", admin, reports.operatorActivity);

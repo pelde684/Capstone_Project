@@ -5,15 +5,25 @@ const paginate = require("../utils/pagination");
 const SHIFTS = require("../utils/shifts");
 const { isDate, addDateRange } = require("../utils/dates");
 
+// Items students registered online during the report's shift (not an operator action, so it is
+// counted live from the items table instead of being stored; cancelled registrations are left out).
+const hourOf = (key) => `CASE r.shift ${Object.entries(SHIFTS).map(([k, s]) => `WHEN '${k}' THEN ${s[key]}`).join(" ")} END`;
+const REGISTERED = `
+  (SELECT COUNT(*) FROM items ri
+    WHERE ri.status <> 'CANCELLED' AND DATE(ri.registered_at) = r.shift_date
+      AND HOUR(ri.registered_at) >= ${hourOf("from")} AND HOUR(ri.registered_at) < ${hourOf("to")})`;
+
 const SELECT = `
   SELECT r.shift_report_id AS id, r.operator_id AS operatorId, u.full_name AS operatorName,
          DATE_FORMAT(r.shift_date, '%Y-%m-%d') AS date, r.shift,
+         ${REGISTERED} AS registered,
          r.deposited, r.stored_count AS storedCount, r.handed_back AS handedBack, r.rejected, r.total_actions AS totalActions,
          r.items_in_storage AS itemsInStorage, r.items_waiting AS itemsWaiting,
          r.notes, r.submitted_at AS submittedAt, r.updated_at AS updatedAt
     FROM shift_reports r JOIN users u ON u.user_id = r.operator_id`;
 // "stored" is a reserved word in MySQL 8, so the column is stored_count; the API still calls it "stored"
-const withLabel = ({ storedCount, ...r }) => ({ ...r, stored: storedCount, shiftLabel: SHIFTS[r.shift]?.label || r.shift });
+const withLabel = ({ storedCount, registered, ...r }) =>
+  ({ ...r, registered: Number(registered), stored: storedCount, shiftLabel: SHIFTS[r.shift]?.label || r.shift });
 
 // Operator submits (or re-submits) the report for one of their own shifts.
 // Body: { date: "2026-10-27", shift: "MORNING" | "AFTERNOON" | "WHOLE_DAY", notes }

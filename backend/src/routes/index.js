@@ -15,6 +15,7 @@ const reports = require("../controllers/report.controller");
 const shiftReports = require("../controllers/shiftReport.controller");
 const complaints = require("../controllers/complaint.controller");
 const lostFound = require("../controllers/lostFound.controller");
+const qrLabels = require("../controllers/qrLabel.controller");
 
 const staff = authorize("Operator", "Admin");
 const admin = authorize("Admin");
@@ -68,6 +69,8 @@ router.post("/drop-offs", student, upload.any(), dropOffs.create);
 router.get("/drop-offs/mine", student, dropOffs.listMine);
 router.get("/drop-offs/:id", dropOffs.getOne);
 router.get("/drop-offs/:id/qr", dropOffs.getQr);
+// Printable labels: one per item, each with its drop-off's QR (students: own items; staff: give dropOffIds)
+router.get("/qr-labels", qrLabels.labels);
 router.put("/drop-offs/:id", authorize("Student", "Admin"), upload.any(), dropOffs.update);
 router.post("/drop-offs/:id/cancel", authorize("Student", "Admin"), dropOffs.cancel);
 

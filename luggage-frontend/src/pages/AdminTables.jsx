@@ -1,3 +1,4 @@
+import Photos from '../Photos'
 import { useState, useEffect } from 'react'
 import { ChevronDown, CalendarDays, X } from 'lucide-react'
 
@@ -549,7 +550,7 @@ export default function AdminTables({ items, students, staff, initial = 'Items' 
                   <span className={'badge ' + it.status}>{it.status}</span>
                 </div>
 
-                {it.photo && <img src={it.photo} alt={`Photo of ${it.name}`} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, marginTop: 14 }} />}
+                <Photos key={it.id} it={it} style={{ marginTop: 14 }} />
                 <p style={{ margin: '14px 0 0' }}>{it.description}</p>
 
                 <dl className="facts" style={{ gridTemplateColumns: '1fr 1fr' }}>

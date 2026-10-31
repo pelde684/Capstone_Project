@@ -40,6 +40,7 @@ export function buildItems(apiItems, txs, emailById = {}) {
       category: i.categoryName,
       description: i.description || '',
       photo: i.photographUrl,
+      photos: i.photos?.length ? i.photos : i.photographUrl ? [i.photographUrl] : [], // up to 4
       owner: i.ownerName,
       studentId: i.ownerStudentId,
       hostel: i.ownerHostel || '',
@@ -48,6 +49,7 @@ export function buildItems(apiItems, txs, emailById = {}) {
       status,
       apiStatus: i.status,
       date: localDay(i.registeredAt),
+      registeredAt: i.registeredAt, // exact time, used by the shift report
       verifiedBy: decided ? emailById[decided.operatorId] || decided.operatorName : undefined,
       verifiedOn: decided ? localDay(decided.transactionTime) : undefined,
       rejectReason: last?.action === 'REJECTION' ? last.remarks : undefined,

@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { api, apiAll } from '../api'
 
 // Shift report: what one operator did during one shift, and what is in the room at the end.
-// Activity comes from GET /transactions (filtered by date and operator in the backend).
+// Activity comes from GET /transactions (filtered by date and operator in the backend),
+// plus the items students registered online during the shift (from the item list).
 
 // Shift times (24-hour clock). Keep in step with backend/src/utils/shifts.js
 const SHIFTS = [
@@ -13,6 +14,7 @@ const SHIFTS = [
 ]
 
 const ACTIONS = {
+  REGISTERED: ['Registered by student', 'Pending'],
   DEPOSIT: ['Deposited', 'Pending'],
   STORAGE_VERIFICATION: ['Verified and stored', 'Stored'],
   COLLECTION_REQUEST: ['Marked ready', 'Stored'],
@@ -64,8 +66,28 @@ export default function OperatorReport({ items = [], locations = [], user }) {
     .sort((a, b) => a.transactionTime.localeCompare(b.transactionTime) || a.id - b.id),
   [txs, operatorId, fromHour, toHour])
 
+  // Items students registered on the student site during this shift (not an operator action,
+  // so they appear for whichever operator is on duty)
+  const registered = useMemo(() => items
+    .filter((i) => i.registeredAt && new Date(i.registeredAt).toLocaleDateString('en-CA') === date)
+    .filter((i) => { const h = new Date(i.registeredAt).getHours(); return h >= fromHour && h < toHour })
+    .map((i) => ({
+      id: `reg-${i.itemId ?? i.id}`,
+      action: 'REGISTERED',
+      transactionTime: i.registeredAt,
+      itemName: i.name,
+      ownerName: i.owner,
+      ownerHostel: i.hostel,
+      ownerStudentId: i.studentId,
+      locationName: null,
+      operatorName: 'Student (online)',
+      remarks: `QR ${i.tag}`,
+    })),
+  [items, date, fromHour, toHour])
+  const activity = [...registered, ...rows].sort((a, b) => a.transactionTime.localeCompare(b.transactionTime))
+
   const count = (a) => rows.filter((t) => t.action === a).length
-  const students = new Set(rows.map((t) => t.ownerStudentId)).size
+  const students = new Set(activity.map((t) => t.ownerStudentId)).size
 
   // What is in the room right now, per shelf
   const shelves = locations.map((l) => ({
@@ -160,7 +182,7 @@ export default function OperatorReport({ items = [], locations = [], user }) {
         </label>
       </div>
       <div className="rfoot">
-        <span className="muted">{loading ? 'Loading…' : `${rows.length} action${rows.length === 1 ? '' : 's'} in this shift`}</span>
+        <span className="muted">{loading ? 'Loading…' : `${activity.length} action${activity.length === 1 ? '' : 's'} in this shift`}</span>
         {msg && <span role="status" style={{ color: msg.startsWith('Could not') ? 'var(--red)' : 'var(--green)', fontWeight: 600 }}>{msg}</span>}
       </div>
     </div>
@@ -194,21 +216,22 @@ export default function OperatorReport({ items = [], locations = [], user }) {
         </dl>
       </header>
 
-      <div className="rsum">
+      <div className="rsum five">
+        <div><small>Registered by students</small><b>{registered.length}</b></div>
         <div><small>Deposited</small><b>{count('DEPOSIT')}</b></div>
         <div><small>Verified and stored</small><b>{count('STORAGE_VERIFICATION')}</b></div>
         <div><small>Handed back</small><b>{count('COLLECTION')}</b></div>
         <div><small>Rejected</small><b>{count('REJECTION')}</b></div>
       </div>
-      <p className="rnote">{rows.length} action{rows.length === 1 ? '' : 's'} for {students} student{students === 1 ? '' : 's'} during this shift.</p>
+      <p className="rnote">{activity.length} action{activity.length === 1 ? '' : 's'} for {students} student{students === 1 ? '' : 's'} during this shift.</p>
 
       <h3>Activity during the shift</h3>
-      {rows.length === 0 ? (
+      {activity.length === 0 ? (
         <div className="rempty"><b>No activity in this shift.</b> Pick another date, shift or operator.</div>
       ) : (
         <div className="tw"><table className="rtable">
           <thead><tr><th>Time</th><th>Action</th><th>Item</th><th>Student</th><th>Student ID</th><th>Shelf</th>{!operatorId && <th>Operator</th>}<th>Remarks</th></tr></thead>
-          <tbody>{rows.map((t) => {
+          <tbody>{activity.map((t) => {
             const [label, tone] = ACTIONS[t.action] || [t.action, '']
             return (
               <tr key={t.id}>

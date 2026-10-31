@@ -952,6 +952,10 @@ select:focus {
   margin-bottom: 8px;
 }
 
+.rsum.five {
+  grid-template-columns: repeat(5, 1fr);
+}
+
 .rsum div {
   padding: 4px 18px;
   border-left: 3px solid var(--blue);
@@ -2672,6 +2676,25 @@ body,
 
 .paper header {
   border-bottom-color: rgba(255, 255, 255, .25);
+}
+
+/* The panels above a report (filters, "My submitted reports") use the same navy glass as the report,
+   in light and dark mode, so the page doesn't mix white and navy boxes */
+.glass.rfilters {
+  --panel: rgba(13, 24, 52, .72);
+  --panel-b: rgba(255, 255, 255, .12);
+  --text: #eef2f8;
+  --muted: #a3b0c6;
+  --input: #1b2742;
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  color: var(--text);
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+}
+
+.light .rfilters .rgrid input[type="date"] {
+  color-scheme: dark;
 }
 
 .paper .notes {

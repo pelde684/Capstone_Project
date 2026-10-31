@@ -1,3 +1,4 @@
+import Photos from '../Photos'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
@@ -27,11 +28,7 @@ function ReviewCard({ it, actions, locationId }) {
       </div>
 
       <div className="vitem">
-        {it.photo && (
-          <a href={it.photo} target="_blank" rel="noreferrer" title="Open the photo full size">
-            <img src={it.photo} alt={`Photo of ${it.name}`} style={{ width: '100%', maxWidth: 320, maxHeight: 240, objectFit: 'cover', borderRadius: 12, marginBottom: 10 }} />
-          </a>
-        )}
+        <Photos it={it} maxWidth={320} height={240} style={{ marginBottom: 10 }} />
         <h4>{it.name}</h4>
         <div className="qr">Tag number: {it.tag}. Category: {it.category}{it.hostel ? `. Hostel: ${it.hostel}` : ''}</div>
         <div>{it.description}</div>

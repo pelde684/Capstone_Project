@@ -1,3 +1,4 @@
+import Photos from '../Photos'
 export default function Ticket({ it, tone, children }) {
   return (
     <div className={'ticket' + (tone ? ' ' + tone : '')}>
@@ -7,11 +8,7 @@ export default function Ticket({ it, tone, children }) {
         <span className={'badge ' + it.status}>{it.status}</span>
       </div>
       <div className="body">
-        {it.photo && (
-          <a href={it.photo} target="_blank" rel="noreferrer" title="Open the photo full size">
-            <img src={it.photo} alt={`Photo of ${it.name}`} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />
-          </a>
-        )}
+        <Photos it={it} style={{ marginBottom: 12 }} />
         <h4>{it.name}</h4>
         <p className="muted" style={{ margin: '4px 0 0' }}>{it.description}</p>
         <dl className="facts">

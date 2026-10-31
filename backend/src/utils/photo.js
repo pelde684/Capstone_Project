@@ -6,12 +6,12 @@ const cloudinary = require("../config/cloudinary");
 exports.MAX_PHOTOS = 4;
 
 // Every upload gets its own name, so a replaced photo never shows an old cached image.
-exports.uploadItemPhoto = (buffer, itemId) =>
+const uploadPhoto = (buffer, folder, prefix) =>
   new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: "luggage-management/items",
-        public_id: `item_${itemId}_${crypto.randomBytes(5).toString("hex")}`,
+        folder: `luggage-management/${folder}`,
+        public_id: `${prefix}_${crypto.randomBytes(5).toString("hex")}`,
         type: "authenticated",
         resource_type: "image",
         overwrite: false,
@@ -20,6 +20,9 @@ exports.uploadItemPhoto = (buffer, itemId) =>
     );
     stream.end(buffer);
   });
+
+exports.uploadItemPhoto = (buffer, itemId) => uploadPhoto(buffer, "items", `item_${itemId}`);
+exports.uploadLostFoundPhoto = (buffer) => uploadPhoto(buffer, "lost-found", "report");
 
 exports.signedPhotoUrl = (publicId) =>
   publicId

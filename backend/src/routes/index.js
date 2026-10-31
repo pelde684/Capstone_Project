@@ -14,6 +14,7 @@ const dropOffs = require("../controllers/dropoff.controller");
 const reports = require("../controllers/report.controller");
 const shiftReports = require("../controllers/shiftReport.controller");
 const complaints = require("../controllers/complaint.controller");
+const lostFound = require("../controllers/lostFound.controller");
 
 const staff = authorize("Operator", "Admin");
 const admin = authorize("Admin");
@@ -86,6 +87,15 @@ router.get("/complaints/mine", student, complaints.listMine);
 router.get("/complaints", admin, complaints.list);
 router.get("/complaints/:id", complaints.getOne);
 router.patch("/complaints/:id", admin, complaints.update);
+
+// Lost and found: anyone logged in reports; everyone sees open found items; staff match and close
+router.post("/lost-found", upload.single("photo"), lostFound.create);
+router.get("/lost-found/found", lostFound.listFound);
+router.get("/lost-found/mine", lostFound.listMine);
+router.get("/lost-found", staff, lostFound.list);
+router.post("/lost-found/match", staff, lostFound.match);
+router.get("/lost-found/:id", lostFound.getOne);
+router.patch("/lost-found/:id", staff, lostFound.update);
 
 // Reports (Admin)
 router.get("/reports/operator-activity", admin, reports.operatorActivity);

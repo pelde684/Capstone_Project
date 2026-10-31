@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, UserCircle2, ChevronDown, Package, X, ZoomIn } from "lucide-react";
+import { Bell, UserCircle2, ChevronDown, ChevronLeft, ChevronRight, Package, X, ZoomIn } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { useBelongings } from "../context/BelongingsContext";
 import { getUser } from "../api";
@@ -40,13 +40,18 @@ export default function MyBelongings() {
   const navigate = useNavigate();
   const { items } = useBelongings();
   const user = getUser();
-  const [selectedPhoto, setSelectedPhoto] = useState(null); // { src, name } or null
+  const [selectedPhoto, setSelectedPhoto] = useState(null); // { photos, name, index } or null
 
-  // Close the large photo when Esc is pressed
+  const step = (dir) =>
+    setSelectedPhoto((s) => s && { ...s, index: (s.index + dir + s.photos.length) % s.photos.length });
+
+  // Esc closes the large photo; left/right arrows move between an item's photos
   useEffect(() => {
     if (!selectedPhoto) return;
     const handleKey = (e) => {
       if (e.key === "Escape") setSelectedPhoto(null);
+      if (e.key === "ArrowLeft") step(-1);
+      if (e.key === "ArrowRight") step(1);
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -139,18 +144,23 @@ export default function MyBelongings() {
                       className={`flex flex-col gap-3 rounded-2xl border p-4 shadow-md backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-5 ${style.card}`}
                     >
                       <div className="flex items-center gap-4">
-                        {item.photo ? (
+                        {item.photos?.length ? (
                           <button
                             type="button"
-                            onClick={() => setSelectedPhoto({ src: item.photo, name: item.name })}
+                            onClick={() => setSelectedPhoto({ photos: item.photos, name: item.name, index: 0 })}
                             className="group relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl"
                             aria-label={`View photo of ${item.name}`}
                           >
                             <img
-                              src={item.photo}
+                              src={item.photos[0]}
                               alt={item.name}
                               className="h-full w-full object-cover"
                             />
+                            {item.photos.length > 1 && (
+                              <span className="absolute bottom-1 right-1 rounded-md bg-black/70 px-1.5 text-[10px] font-semibold text-white">
+                                {item.photos.length}
+                              </span>
+                            )}
                             <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                               <ZoomIn className="h-5 w-5 text-white" />
                             </span>
@@ -197,14 +207,37 @@ export default function MyBelongings() {
           >
             <X className="h-6 w-6" />
           </button>
+          {selectedPhoto.photos.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); step(-1); }}
+                className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                aria-label="Previous photo"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); step(1); }}
+                className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                aria-label="Next photo"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          )}
           <div className="flex max-h-full max-w-3xl flex-col items-center gap-3">
             <img
-              src={selectedPhoto.src}
+              src={selectedPhoto.photos[selectedPhoto.index]}
               alt={selectedPhoto.name}
               onClick={(e) => e.stopPropagation()}
               className="max-h-[80vh] max-w-full rounded-xl object-contain"
             />
-            <p className="text-sm font-medium text-white">{selectedPhoto.name}</p>
+            <p className="text-sm font-medium text-white">
+              {selectedPhoto.name}
+              {selectedPhoto.photos.length > 1 && ` · photo ${selectedPhoto.index + 1} of ${selectedPhoto.photos.length}`}
+            </p>
           </div>
         </div>
       )}

@@ -22,6 +22,7 @@ export function flattenDropOffs(dropOffs) {
       category: it.categoryName,
       description: it.description || "",
       photo: it.photographUrl,
+      photos: it.photos?.length ? it.photos : it.photographUrl ? [it.photographUrl] : [],
       status: STATUS_LABEL[it.status] || it.status,
       apiStatus: it.status,
       date: new Date(it.registeredAt).toLocaleDateString("en-GB", {

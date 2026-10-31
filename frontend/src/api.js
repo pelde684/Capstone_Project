@@ -51,24 +51,31 @@ export async function api(path, { method = "GET", body, form } = {}) {
   return data;
 }
 
-// One drop-off = one QR for all items. Items that already exist keep their `id`;
-// a photo is only sent for new items or when the student picked a new one.
+// One drop-off = one QR for all items. Items that already exist keep their `id`.
+// Each item has up to 4 photos: it.photos = [{ id?, file?, preview }].
+//  - new photos are sent as files, all with the same field name (photo_0 for item 1, photo_1 for item 2 ...)
+//  - when editing, `photoIds` lists the saved photos to keep (in order); new files are added after them
 export function buildDropOffForm(items) {
   const form = new FormData();
   form.append(
     "items",
     JSON.stringify(
-      items.map((it) => ({
-        id: it.id || undefined,
-        name: it.itemName,
-        categoryId: it.categoryId,
-        quantity: 1,
-        description: it.description,
-      }))
+      items.map((it) => {
+        const saved = it.photos.filter((p) => !p.file);
+        const canList = saved.every((p) => p.id); // very old photos may have no id: then leave them as they are
+        return {
+          id: it.id || undefined,
+          name: it.itemName,
+          categoryId: it.categoryId,
+          quantity: 1,
+          description: it.description,
+          photoIds: it.id && canList ? saved.map((p) => p.id) : undefined,
+        };
+      })
     )
   );
   items.forEach((it, i) => {
-    if (it.photo) form.append(`photo_${i}`, it.photo);
+    for (const p of it.photos) if (p.file) form.append(`photo_${i}`, p.file);
   });
   return form;
 }

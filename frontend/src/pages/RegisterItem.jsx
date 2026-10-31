@@ -13,6 +13,7 @@ import {
   Plus,
   Trash2,
   Package,
+  X,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { api, buildDropOffForm, getUser } from "../api";
@@ -22,6 +23,7 @@ import loginBg from "../assets/college.jpeg";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_PHOTO_MB = 5;
+const MAX_PHOTOS = 4; // per item, from different sides (meeting 9)
 
 function emptyItem() {
   return {
@@ -30,8 +32,7 @@ function emptyItem() {
     itemName: "",
     categoryId: "",
     description: "",
-    photo: null, // the File the student picked (only for new items or a replaced photo)
-    photoPreview: null, // what is shown: a local preview or the saved photo's URL
+    photos: [], // up to 4: { id } = already saved, { file } = newly picked; preview = what is shown
   };
 }
 
@@ -58,26 +59,27 @@ export default function RegisterItem() {
     setItems((prev) => prev.map((it) => (it.key === key ? { ...it, [field]: value } : it)));
   };
 
+  // Several photos can be picked at once; anything over 4 per item is left out with a message
   const handlePhotoChange = (key, e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError("Please choose a JPG, PNG or WebP photo.");
-      e.target.value = "";
-      return;
-    }
-    if (file.size > MAX_PHOTO_MB * 1024 * 1024) {
-      setError(`Each photo must be ${MAX_PHOTO_MB} MB or smaller.`);
-      e.target.value = "";
-      return;
-    }
-    setError("");
-    setItems((prev) =>
-      prev.map((it) =>
-        it.key === key ? { ...it, photo: file, photoPreview: URL.createObjectURL(file) } : it
-      )
-    );
+    const files = [...e.target.files];
+    e.target.value = ""; // so the same file can be picked again after removing it
+    if (!files.length) return;
+    const bad = files.find((f) => !ALLOWED_TYPES.includes(f.type));
+    if (bad) return setError(`"${bad.name}" is not a JPG, PNG or WebP photo.`);
+    const big = files.find((f) => f.size > MAX_PHOTO_MB * 1024 * 1024);
+    if (big) return setError(`"${big.name}" is bigger than ${MAX_PHOTO_MB} MB.`);
+
+    const item = items.find((it) => it.key === key);
+    const room = MAX_PHOTOS - item.photos.length;
+    setError(files.length > room ? `Only ${MAX_PHOTOS} photos per item, so the extra ${files.length - room} were left out.` : "");
+    const added = files.slice(0, room).map((file) => ({ file, preview: URL.createObjectURL(file) }));
+    setItems((prev) => prev.map((it) => (it.key === key ? { ...it, photos: [...it.photos, ...added] } : it)));
   };
+
+  const removePhoto = (key, index) =>
+    setItems((prev) =>
+      prev.map((it) => (it.key === key ? { ...it, photos: it.photos.filter((_, i) => i !== index) } : it))
+    );
 
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
 
@@ -86,9 +88,9 @@ export default function RegisterItem() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const missing = items.findIndex((it) => !it.photo && !it.photoPreview);
+    const missing = items.findIndex((it) => !it.photos.length);
     if (missing !== -1) {
-      setError(`Item ${missing + 1} needs a photo.`);
+      setError(`Item ${missing + 1} needs at least one photo.`);
       return;
     }
 
@@ -125,21 +127,60 @@ export default function RegisterItem() {
         itemName: it.name,
         categoryId: String(it.categoryId),
         description: it.description || "",
-        photo: null,
-        photoPreview: it.photographUrl,
+        // the saved photos (up to 4), kept unless the student removes them
+        photos: (it.photos?.length ? it.photos : it.photographUrl ? [it.photographUrl] : []).map((url, i) => ({
+          id: it.photoIds?.[i] ?? null,
+          preview: url,
+        })),
       }))
     );
     setError("");
     setRegistered(null);
   };
 
+  // One label per item (every bag gets the same QR), 6 labels on an A4 sheet.
+  // Each sheet is saved as a PNG ready to print; 7+ items give a second sheet.
   const handleDownload = () => {
-    const canvas = document.getElementById("batch-qr-canvas");
-    const url = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${shortCode(registered.qrValue)}.png`;
-    link.click();
+    const qr = document.getElementById("batch-qr-canvas");
+    const code = shortCode(registered.qrValue);
+    const items = registered.items;
+    const W = 1240, H = 1754, M = 60, GAP = 30, COLS = 2, ROWS = 3, PER = COLS * ROWS; // A4 at 150 dpi
+    const cw = (W - 2 * M - GAP) / COLS, ch = (H - 2 * M - 2 * GAP) / ROWS;
+    const fit = (ctx, text, max) => {
+      let t = String(text || "");
+      while (t.length > 1 && ctx.measureText(t).width > max) t = t.slice(0, -1);
+      return t === String(text || "") ? t : t.slice(0, -1) + "…";
+    };
+
+    const sheets = Math.ceil(items.length / PER);
+    for (let s = 0; s < sheets; s++) {
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = "center"; ctx.fillStyle = "#000";
+
+      items.slice(s * PER, s * PER + PER).forEach((item, k) => {
+        const n = s * PER + k;
+        const x = M + (k % COLS) * (cw + GAP), y = M + Math.floor(k / COLS) * (ch + GAP);
+        ctx.setLineDash([12, 8]); ctx.strokeStyle = "#777"; ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, cw, ch); ctx.setLineDash([]);
+        const q = 300, cx = x + cw / 2;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(qr, cx - q / 2, y + 40, q, q);
+        ctx.font = "bold 40px Arial"; ctx.fillText(code, cx, y + 40 + q + 50);
+        ctx.font = "bold 30px Arial"; ctx.fillText(fit(ctx, item.name, cw - 40), cx, y + 40 + q + 95);
+        ctx.font = "22px Arial"; ctx.fillStyle = "#333";
+        ctx.fillText(fit(ctx, `${user?.name || ""} · ${user?.studentId || ""} · Bag ${n + 1} of ${items.length}`, cw - 40), cx, y + 40 + q + 132);
+        ctx.font = "18px Arial"; ctx.fillStyle = "#666"; ctx.fillText("CST Luggage Room", cx, y + 40 + q + 162);
+        ctx.fillStyle = "#000";
+      });
+
+      const link = document.createElement("a");
+      link.href = c.toDataURL("image/png");
+      link.download = sheets > 1 ? `${code}-labels-${s + 1}.png` : `${code}-labels.png`;
+      setTimeout(() => link.click(), s * 400); // small gap so the browser allows several downloads
+    }
   };
 
   return (
@@ -281,32 +322,41 @@ export default function RegisterItem() {
                           </div>
 
                           <div>
-                            <label className="mb-1 block text-sm font-medium text-body">Photo</label>
-                            <label
-                              htmlFor={`photo-upload-${item.key}`}
-                              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-muted/40 bg-field px-4 py-8 text-center hover:border-blue-400"
-                            >
-                              {item.photoPreview ? (
-                                <img
-                                  src={item.photoPreview}
-                                  alt="Preview"
-                                  className="h-32 w-32 rounded-lg object-cover"
-                                />
-                              ) : (
-                                <>
-                                  <Upload className="h-6 w-6 text-accent" />
-                                  <p className="text-sm text-body">
-                                    Click to upload a photo of your item
-                                  </p>
-                                  <p className="text-xs text-muted">
-                                    JPG, PNG or WebP, up to {MAX_PHOTO_MB}MB
-                                  </p>
-                                </>
-                              )}
+                            <label className="mb-1 block text-sm font-medium text-body">
+                              Photos <span className="text-muted">({item.photos.length} of {MAX_PHOTOS}, from different sides)</span>
                             </label>
+                            <div className="grid grid-cols-2 gap-3 rounded-xl border-2 border-dashed border-muted/40 bg-field p-3 sm:grid-cols-4">
+                              {item.photos.map((p, i) => (
+                                <div key={p.preview} className="relative aspect-square overflow-hidden rounded-lg">
+                                  <img src={p.preview} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+                                  {i === 0 && (
+                                    <span className="absolute left-1 top-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">Main</span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhoto(item.key, i)}
+                                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white hover:bg-red-600"
+                                    aria-label={`Remove photo ${i + 1}`}
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                              {item.photos.length < MAX_PHOTOS && (
+                                <label
+                                  htmlFor={`photo-upload-${item.key}`}
+                                  className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-muted/50 text-center hover:border-blue-400"
+                                >
+                                  <Upload className="h-5 w-5 text-accent" />
+                                  <p className="text-xs text-body">{item.photos.length ? "Add photo" : "Upload photos"}</p>
+                                  <p className="text-[10px] text-muted">JPG, PNG, WebP · {MAX_PHOTO_MB}MB</p>
+                                </label>
+                              )}
+                            </div>
                             <input
                               id={`photo-upload-${item.key}`}
                               type="file"
+                              multiple
                               accept="image/jpeg,image/png,image/webp"
                               onChange={(e) => handlePhotoChange(item.key, e)}
                               className="hidden"
@@ -372,6 +422,9 @@ export default function RegisterItem() {
                           <Package className="h-5 w-5 text-accent" />
                         </div>
                       )}
+                      {item.photos?.length > 1 && (
+                        <span className="rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent">{item.photos.length} photos</span>
+                      )}
                       <div>
                         <p className="text-sm font-medium text-heading">{item.name}</p>
                         <p className="text-xs text-muted">{item.categoryName}</p>
@@ -389,8 +442,8 @@ export default function RegisterItem() {
                 </button>
 
                 <p className="mt-5 text-xs text-muted">
-                  Print this QR code and attach it to your belongings, or show it on your phone at
-                  drop-off for the operator to scan.
+                  You get one label per item, all with the same QR code. Print, cut along the dashed
+                  lines and stick one on each bag, or show the code on your phone at drop-off.
                 </p>
 
                 <button
@@ -398,7 +451,9 @@ export default function RegisterItem() {
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-md transition-colors hover:bg-blue-600"
                 >
                   <Download className="h-4 w-4" />
-                  Download QR Code
+                  {registered.items.length > 1
+                    ? `Download ${registered.items.length} QR Labels`
+                    : "Download QR Label"}
                 </button>
 
                 <button

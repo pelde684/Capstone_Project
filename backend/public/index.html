@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Luggage Management - Test Console</title><link rel="stylesheet" href="style.css"></head>
+<body><header><h1>Student Luggage Management</h1><span id="who"></span> <button id="logout">Logout</button></header>
+<main><p id="msg"></p>
+<section id="login"><h2>Login</h2>
+<input id="id" placeholder="Email or student ID" value="02230001"><input id="pw" type="password" placeholder="Password">
+<button id="loginBtn">Login</button></section>
+<div id="app" hidden>
+<section id="student" hidden><h2>Register a belonging</h2>
+<input id="name" placeholder="Item name"><select id="cat"></select><input id="qty" type="number" min="1" value="1">
+<input id="desc" placeholder="Description (optional)"><input id="photo" type="file" accept="image/*">
+<button id="reg">Register</button><h2>My items</h2><div id="mine"></div></section>
+<section id="operator" hidden><h2>Scan QR</h2>
+<input id="qrv" placeholder="Paste the QR value"><button id="scan">Scan</button>
+<div id="result"></div><label>Store in: <select id="loc"></select></label><div id="actions"></div><h3>History</h3><ul id="hist"></ul></section>
+<section id="admin" hidden><h2>Create user</h2>
+<input id="uname" placeholder="Full name"><input id="uemail" placeholder="Email"><input id="upass" type="password" placeholder="Password (8+)">
+<select id="urole"><option>Student</option><option>Operator</option><option>Admin</option></select><input id="usid" placeholder="Student ID (students)">
+<button id="mkuser">Create</button><h2>Users</h2><table><tbody id="users"></tbody></table></section>
+</div></main><script src="app.js"></script></body></html>

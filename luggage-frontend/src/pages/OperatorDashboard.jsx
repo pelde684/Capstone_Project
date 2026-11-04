@@ -1,302 +1,125 @@
-import { useNavigate } from "react-router-dom";
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { api } from '../api'
 
-import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
+const tasks = [
+  'Check the pending registrations',
+  'Match the tags on stored bags to the list',
+  'Hand back anything students are waiting for',
+  'Print the shift report before you leave',
+]
 
-/* ------------------------------------------------------------------ */
-/*  Icons (plain SVG, no extra package needed)                         */
-/* ------------------------------------------------------------------ */
-function Svg({ size = 24, className = "", children }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      {children}
-    </svg>
-  );
-}
+export default function OperatorDashboard({ items }) {
+  const nav = useNavigate()
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [done, setDone] = useState([])
 
-const QrIcon = (p) => (
-  <Svg {...p}>
-    <rect x="4" y="4" width="6" height="6" rx="1" />
-    <rect x="14" y="4" width="6" height="6" rx="1" />
-    <rect x="4" y="14" width="6" height="6" rx="1" />
-    <path d="M14 14h2v2h-2zM18 14h2M14 18h2v2M19 18v2" />
-  </Svg>
-);
+  const c = (s) => items.filter(i => i.status === s).length
+  const pending = items.filter(i => i.status === 'Pending')
+  const stored = items.filter(i => i.status === 'Stored')
+  const recent = [...items].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6)
+  const cats = [...new Set(stored.map(i => i.category))].map(k => [k, stored.filter(i => i.category === k).length])
+  const maxCat = Math.max(...cats.map(x => x[1]), 1)
 
-const ClipboardIcon = (p) => (
-  <Svg {...p}>
-    <rect x="6" y="5" width="12" height="16" rx="2" />
-    <rect x="9" y="3" width="6" height="4" rx="1" />
-    <path d="M9 12h6M9 16h4" />
-  </Svg>
-);
+  const h = new Date().getHours()
+  const greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
+  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
 
-const ArrowRightIcon = (p) => (
-  <Svg {...p}>
-    <path d="M5 12h14M13 6l6 6-6 6" />
-  </Svg>
-);
+  const cells = [
+    ['Total items', items.length, 'In the luggage room system'],
+    ['Pending verification', c('Pending'), pending.length ? 'Need an operator check' : 'All caught up', pending.length > 0],
+    ['Stored', c('Stored'), 'Safely in the room'],
+    ['Returned', c('Returned'), 'Handed back to students'],
+  ]
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
+  // Looks the tag up in the backend (short code or full QR value) and opens the next step
+  const find = async (e) => {
+    e.preventDefault()
+    const value = code.trim()
+    if (!value) return
+    try {
+      const r = await api('/scan', { method: 'POST', body: { qrValue: value } })
+      const found = r.items.map(x => items.find(i => i.id === String(x.id))).filter(Boolean)
+      const todo = found.find(i => i.status === 'Pending' || i.status === 'Rejected')
+      if (todo) return nav(`/operator/verify?code=${todo.id}`)
+      const stored = found.find(i => i.status === 'Stored')
+      if (stored) return nav(`/operator/handover?code=${stored.id}`)
+      setErr(found.length ? `Everything on ${value.toUpperCase()} has already been returned.` : `No active items on ${value.toUpperCase()}.`)
+    } catch (ex) {
+      setErr(ex.message === 'QR code not recognised' ? `No items with the code “${value}”. Check the tag and try again.` : ex.message)
+    }
+  }
+  const toggle = (t) => setDone(d => d.includes(t) ? d.filter(x => x !== t) : [...d, t])
 
-function formatToday() {
-  return new Date().toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/*  Page                                                               */
-/* ------------------------------------------------------------------ */
-function OperatorDashboard() {
-  const navigate = useNavigate();
-
-  const totalBelongings = 128;
-  const pending = 12;
-  const completed = 96;
-  const students = 82;
-
-  const handoverPercent = Math.round((completed / totalBelongings) * 100);
-
-  const stats = [
-    { label: "In the room", value: totalBelongings, note: "Registered so far" },
-    {
-      label: "Waiting for a check",
-      value: pending,
-      note: "These need you",
-      urgent: true,
-    },
-    { label: "Handed back", value: completed, note: "Returned to students" },
-    { label: "Students", value: students, note: "Have bags stored" },
-  ];
-
-  const today = [
-    { label: "QR codes scanned", value: 18 },
-    { label: "Belongings verified", value: 14 },
-    { label: "Handed over", value: 8 },
-  ];
-
-  return (
-    <div
-      className="min-h-screen"
-      style={{ fontFamily: "'Figtree', system-ui, sans-serif" }}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap');
-
-        .font-display { font-family: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif; }
-
-        @keyframes scan-sweep {
-          0%   { top: 8%;  opacity: 0; }
-          15%  { opacity: 1; }
-          85%  { opacity: 1; }
-          100% { top: 88%; opacity: 0; }
-        }
-        .scan-line { animation: scan-sweep 1.6s ease-in-out infinite; }
-
-        @media (prefers-reduced-motion: reduce) {
-          .scan-line { animation: none; opacity: 0; }
-        }
-      `}</style>
-
-      {/* SIDEBAR */}
-      <Sidebar />
-
-      {/* MAIN CONTENT */}
-      <main className="ml-64 min-h-screen">
-        <Navbar title="Operator Dashboard" />
-
-        <div className="p-8 max-w-[1400px]">
-          {/* HEADER */}
-          <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="font-display text-4xl font-bold tracking-tight text-white">
-                {getGreeting()}
-              </h1>
-              <p className="mt-2 text-lg text-slate-300">
-                {pending} belongings are waiting for you to check them.
-              </p>
-            </div>
-
-            <p className="text-sm text-slate-400">{formatToday()}</p>
-          </header>
-
-          {/* STATISTICS: one panel, thin dividers, no icon boxes */}
-          <section
-            aria-label="Luggage room summary"
-            className="mb-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 xl:grid-cols-4"
-          >
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-slate-950/85 p-6 backdrop-blur-md"
-              >
-                <p className="text-sm text-slate-400">{stat.label}</p>
-
-                <p
-                  className={`font-display mt-3 text-5xl font-bold ${
-                    stat.urgent ? "text-amber-300" : "text-white"
-                  }`}
-                >
-                  {stat.value}
-                </p>
-
-                <p
-                  className={`mt-2 text-sm ${
-                    stat.urgent ? "text-amber-200/80" : "text-slate-500"
-                  }`}
-                >
-                  {stat.note}
-                </p>
-              </div>
-            ))}
-          </section>
-
-          {/* QUICK ACTIONS */}
-          <section
-            aria-label="Quick actions"
-            className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-5"
-          >
-            {/* SCAN QR */}
-            <button
-              onClick={() => navigate("/operator/scan")}
-              className="group relative overflow-hidden rounded-2xl bg-blue-600 p-8 text-left text-white transition-colors duration-200 hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300 lg:col-span-3"
-            >
-              <div
-                aria-hidden="true"
-                className="absolute right-8 top-1/2 hidden h-36 w-36 -translate-y-1/2 sm:block"
-              >
-                <span className="absolute left-0 top-0 h-7 w-7 rounded-tl-lg border-l-4 border-t-4 border-white/70" />
-                <span className="absolute right-0 top-0 h-7 w-7 rounded-tr-lg border-r-4 border-t-4 border-white/70" />
-                <span className="absolute bottom-0 left-0 h-7 w-7 rounded-bl-lg border-b-4 border-l-4 border-white/70" />
-                <span className="absolute bottom-0 right-0 h-7 w-7 rounded-br-lg border-b-4 border-r-4 border-white/70" />
-                <QrIcon
-                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white/45"
-                  size={56}
-                />
-                <span className="scan-line absolute left-2 right-2 h-0.5 rounded-full bg-sky-200 opacity-0 group-hover:opacity-100" />
-              </div>
-
-              <div className="relative max-w-sm">
-                <h2 className="font-display text-3xl font-bold">
-                  Scan a student's QR code
-                </h2>
-
-                <p className="mt-3 text-blue-100">
-                  Point the camera at the code on a bag to pull up its details.
-                </p>
-
-                <span className="mt-8 inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 font-semibold text-blue-700">
-                  Open scanner
-                  <ArrowRightIcon size={16} />
-                </span>
-              </div>
-            </button>
-
-            {/* VERIFICATION */}
-            <button
-              onClick={() => navigate("/operator/verification")}
-              className="group flex flex-col rounded-2xl border border-white/10 bg-slate-950/85 p-8 text-left text-white backdrop-blur-md transition-colors duration-200 hover:border-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300 lg:col-span-2"
-            >
-              <ClipboardIcon className="text-slate-300" size={34} />
-
-              <h2 className="font-display mt-5 text-2xl font-bold">
-                Check belongings
-              </h2>
-
-              <p className="mt-2 text-slate-400">
-                Review what students registered and approve it.
-              </p>
-
-              <span className="mt-auto inline-flex items-center gap-2 pt-6 font-semibold text-sky-300">
-                Start checking
-                <ArrowRightIcon
-                  size={16}
-                  className="transition-transform group-hover:translate-x-1"
-                />
-              </span>
-            </button>
-          </section>
-
-          {/* TODAY */}
-          <section
-            aria-label="Today"
-            className="grid grid-cols-1 gap-5 lg:grid-cols-3"
-          >
-            <div className="rounded-2xl border border-white/10 bg-slate-950/85 p-6 backdrop-blur-md lg:col-span-2">
-              <h2 className="font-display text-xl font-bold text-white">
-                Today at the desk
-              </h2>
-
-              <ul className="mt-5 divide-y divide-white/10">
-                {today.map((item) => (
-                  <li
-                    key={item.label}
-                    className="flex items-baseline justify-between py-4 first:pt-0 last:pb-0"
-                  >
-                    <span className="text-slate-300">{item.label}</span>
-                    <span className="font-display text-3xl font-bold text-white">
-                      {item.value}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-950/85 p-6 backdrop-blur-md">
-              <h2 className="font-display text-xl font-bold text-white">
-                Handover progress
-              </h2>
-
-              <p className="font-display mt-5 text-5xl font-bold text-white">
-                {handoverPercent}%
-              </p>
-
-              <div
-                role="progressbar"
-                aria-valuenow={handoverPercent}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="Belongings handed back"
-                className="mt-4 h-2 overflow-hidden rounded-full bg-white/10"
-              >
-                <div
-                  className="h-full rounded-full bg-sky-400 transition-all duration-700"
-                  style={{ width: `${handoverPercent}%` }}
-                />
-              </div>
-
-              <p className="mt-3 text-sm text-slate-400">
-                {completed} of {totalBelongings} belongings are back with their
-                owners.
-              </p>
-            </div>
-          </section>
-        </div>
-      </main>
+  return (<>
+    <div className="pagehead">
+      <div>
+        <h2>{greet}</h2>
+        <p className="muted">{today}. {pending.length ? `${pending.length} item${pending.length > 1 ? 's are' : ' is'} waiting for you.` : 'Nothing is waiting for a check.'}</p>
+      </div>
+      <div className="row">
+        <Link className="btn" to="/operator/scan">Scan a tag</Link>
+        <Link className="btn ghost" to="/operator/handover">Start a handover</Link>
+      </div>
     </div>
-  );
-}
 
-export default OperatorDashboard;
+    <div className="glass strip">{cells.map(([l, n, s, warn]) => (
+      <div key={l} className={'cell' + (warn ? ' warn' : '')}><span>{l}</span><b>{n}</b><p>{s}</p></div>
+    ))}</div>
+
+    <div className="grid2 wide">
+      <div className="glass card">
+        <h3>Waiting for a check ({pending.length})</h3>
+        {pending.length === 0
+          ? <div className="empty"><b>You are all caught up</b>New registrations will show up here.</div>
+          : <div className="plist">{pending.map(p => (
+            <div className="prow" key={p.id}>
+              <div><b>{p.name}</b><small>{p.owner}, {p.studentId}</small></div>
+              <div style={{ textAlign: 'right' }}><small style={{ display: 'block' }}>{p.tag}</small><Link className="tlink" to={`/operator/verify?code=${p.id}`}>Review</Link></div>
+            </div>
+          ))}</div>}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className="glass card">
+          <h3>Look up a tag</h3>
+          <form className="row" onSubmit={find}>
+            <input style={{ flex: 1 }} value={code} onChange={e => { setCode(e.target.value); setErr('') }} placeholder="8D40E85C" aria-label="Tag number" />
+            <button className="btn" type="submit">Open</button>
+          </form>
+          {err && <p style={{ color: 'var(--red)', marginBottom: 0 }} role="alert">{err}</p>}
+        </div>
+
+        <div className="glass card">
+          <h3>This shift ({done.length} of {tasks.length} done)</h3>
+          <div className="checks nobox">{tasks.map(t => (
+            <label key={t} className={done.includes(t) ? 'done' : ''}>
+              <input type="checkbox" checked={done.includes(t)} onChange={() => toggle(t)} /><span>{t}</span>
+            </label>
+          ))}</div>
+        </div>
+      </div>
+    </div>
+
+    <div className="grid2">
+      <div className="glass card"><h3>Latest registrations</h3>
+        <div className="tw"><table>
+          <thead><tr><th>Tag</th><th>Item</th><th>Owner</th><th>Status</th></tr></thead>
+          <tbody>{recent.map(i => (
+            <tr key={i.id}><td className="nw">{i.tag}</td><td>{i.name}</td><td>{i.owner}</td><td><span className={'badge ' + i.status}>{i.status}</span></td></tr>
+          ))}</tbody>
+        </table></div>
+      </div>
+
+      <div className="glass card"><h3>In the room now</h3>
+        {cats.length === 0 ? <div className="empty"><b>The room is empty</b>Stored items will be counted here.</div> : cats.map(([k, n]) => (
+          <div key={k} style={{ marginBottom: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}><span>{k}</span><span>{n}</span></div>
+            <div className="prog" style={{ marginTop: 8 }}><i style={{ width: (n / maxCat) * 100 + '%' }} /></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </>)
+}

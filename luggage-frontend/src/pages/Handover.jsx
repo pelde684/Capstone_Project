@@ -1,288 +1,89 @@
-import { useState } from "react";
-import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
+import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import Ticket from './Ticket'
 
-function SearchIcon({ size = 20, className = "" }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle cx="11" cy="11" r="6.5" />
-      <path d="M16 16l4.5 4.5" />
-    </svg>
-  );
-}
+export default function Handover({ items, actions }) {
+  const [q, setQ] = useSearchParams()
+  const [find, setFind] = useState('')
+  const [sid, setSid] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
 
-function Handover() {
-  const [items, setItems] = useState([
-    {
-      id: 1,
-      student: "Kinley Dorji",
-      studentId: "02250123",
-      item: "Black Suitcase",
-      qr: "QR-2026-001",
-      description: "Black medium-sized suitcase with clothes.",
-      handedOver: false,
-    },
-    {
-      id: 2,
-      student: "Pema Wangchuk",
-      studentId: "02250456",
-      item: "Blue Backpack",
-      qr: "QR-2026-002",
-      description: "Blue backpack containing books and personal items.",
-      handedOver: false,
-    },
-    {
-      id: 3,
-      student: "Sonam Choden",
-      studentId: "02250217",
-      item: "Red Trolley Bag",
-      qr: "QR-2026-003",
-      description: "Red trolley bag with a broken left wheel, filled with winter clothes.",
-      handedOver: false,
-    },
-    {
-      id: 4,
-      student: "Tshering Dema",
-      studentId: "02250334",
-      item: "Green Duffel Bag",
-      qr: "QR-2026-004",
-      description: "Green duffel bag with sports shoes and a football jersey.",
-      handedOver: false,
-    },
-    {
-      id: 5,
-      student: "Karma Tenzin",
-      studentId: "02250589",
-      item: "Grey Laptop Bag",
-      qr: "QR-2026-005",
-      description: "Grey laptop bag with a charger, notebooks and a pencil case.",
-      handedOver: false,
-    },
-    {
-      id: 6,
-      student: "Dechen Lhamo",
-      studentId: "02250671",
-      item: "Brown Cardboard Box",
-      qr: "QR-2026-006",
-      description: "Medium cardboard box taped shut, with kitchen items and bedding.",
-      handedOver: false,
-    },
-    {
-      id: 7,
-      student: "Ugyen Namgay",
-      studentId: "02250742",
-      item: "Maroon Suitcase",
-      qr: "QR-2026-007",
-      description: "Large maroon suitcase with a name tag on the handle.",
-      handedOver: false,
-    },
-    {
-      id: 8,
-      student: "Yangchen Pelden",
-      studentId: "02250815",
-      item: "Black Sports Bag",
-      qr: "QR-2026-008",
-      description: "Black sports bag with a badminton racket and a water bottle.",
-      handedOver: false,
-    },
-  ]);
+  const allStored = items.filter(i => i.status === 'Stored')
+  const stored = allStored.filter(i => Object.values(i).join(' ').toLowerCase().includes(find.toLowerCase()))
+  const it = items.find(i => i.id === q.get('code'))
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const pick = (id) => { setQ({ code: id }); setSid(''); setErr('') }
+  const confirm = async () => {
+    if (busy) return
+    if (sid.trim() !== it.studentId) return setErr('That ID does not match the owner of this item. Ask the student to show their card.')
+    setBusy(true)
+    try { await actions.collect(it); setSid(''); setErr('') } catch { /* message shown by App */ } finally { setBusy(false) }
+  }
 
-  const setHandedOver = (id, handedOver) => {
-    setItems((current) =>
-      current.map((entry) =>
-        entry.id === id ? { ...entry, handedOver } : entry
-      )
-    );
-  };
+  return (<>
+    <div className="grid2 split noprint">
+      <div className="glass card">
+        <h3>In storage ({allStored.length})</h3>
+        <input style={{ width: '100%', marginBottom: 14 }} value={find} onChange={e => setFind(e.target.value)} placeholder="Search by name, tag or student ID" aria-label="Search stored items" />
+        {stored.length === 0
+          ? <div className="empty"><b>{allStored.length ? 'No match' : 'Nothing in storage'}</b>{allStored.length ? 'Try a different search.' : 'Approved items will wait here for their owners.'}</div>
+          : <div className="tw"><table className="pick">
+            <thead><tr><th>Tag</th><th>Item</th><th>Owner</th><th></th></tr></thead>
+            <tbody>{stored.map(p => {
+              const on = it?.id === p.id
+              return (
+                <tr key={p.id} className={on ? 'sel' : ''} onClick={() => pick(p.id)}>
+                  <td className="nw">{p.tag}</td><td>{p.name}</td><td>{p.owner}</td>
+                  <td><button className={'btn sm ' + (on ? 'on' : 'ghost')} onClick={(e) => { e.stopPropagation(); pick(p.id) }}>{on ? 'Selected' : 'Select'}</button></td>
+                </tr>
+              )
+            })}</tbody>
+          </table></div>}
+      </div>
 
-  // SEARCH
-  const term = searchTerm.toLowerCase();
-  const filteredItems = items.filter(
-    (entry) =>
-      entry.item.toLowerCase().includes(term) ||
-      entry.student.toLowerCase().includes(term) ||
-      entry.studentId.toLowerCase().includes(term) ||
-      entry.qr.toLowerCase().includes(term)
-  );
-
-  return (
-    <div
-      className="min-h-screen"
-      style={{ fontFamily: "'Figtree', system-ui, sans-serif" }}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap');
-
-        .font-display { font-family: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif; }
-      `}</style>
-
-      <Sidebar />
-
-      <main className="ml-64 min-h-screen">
-        <Navbar title="Handover" />
-
-        <div className="mx-auto max-w-5xl p-8">
-          {/* PAGE HEADER */}
-          <header className="mb-8">
-            <h1 className="font-display text-4xl font-bold tracking-tight text-white">
-              Hand over a bag
-            </h1>
-
-            <p className="mt-2 text-lg text-slate-300">
-              Check the student and the bag against the record, then confirm.
-            </p>
-          </header>
-
-          {/* SEARCH BAR */}
-          <div className="relative mb-6">
-            <SearchIcon
-              size={20}
-              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <input
-              type="text"
-              aria-label="Search students and bags"
-              placeholder="Search by student name, ID, bag or QR code"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-slate-950/85 py-3.5 pl-12 pr-4 text-white placeholder-slate-500 backdrop-blur-md outline-none transition-colors focus:border-sky-400/60 focus:ring-2 focus:ring-sky-400/30"
-            />
-          </div>
-
-          {/* HANDOVER LIST */}
-          <div className="space-y-5">
-            {filteredItems.length > 0 ? (
-              filteredItems.map((entry) => (
-                <article
-                  key={entry.id}
-                  className="rounded-2xl border border-white/10 bg-slate-950/85 p-6 backdrop-blur-md"
-                >
-                  {/* STUDENT NAME + ID AT THE TOP */}
-                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <div>
-                      <p className="text-sm text-slate-400">Student</p>
-                      <p className="font-display mt-1 text-2xl font-bold text-white">
-                        {entry.student}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-slate-400">Student ID</p>
-                      <p className="font-display mt-1 text-2xl font-bold text-white">
-                        {entry.studentId}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* THE ITEM: turns green once handed over */}
-                  <div
-                    className={`relative mt-6 overflow-hidden rounded-xl border py-5 pl-7 pr-5 transition-colors duration-300 ${
-                      entry.handedOver
-                        ? "border-emerald-400/40 bg-emerald-500/15"
-                        : "border-white/10 bg-white/5"
-                    }`}
-                  >
-                    <span
-                      className={`absolute inset-y-0 left-0 w-2 ${
-                        entry.handedOver ? "bg-emerald-400" : "bg-slate-500"
-                      }`}
-                    />
-
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p
-                          className={`font-display text-xl font-bold ${
-                            entry.handedOver ? "text-emerald-200" : "text-white"
-                          }`}
-                        >
-                          {entry.item}
-                        </p>
-                        <p
-                          className={`mt-0.5 text-sm ${
-                            entry.handedOver
-                              ? "text-emerald-200/70"
-                              : "text-slate-400"
-                          }`}
-                        >
-                          QR ID: {entry.qr}
-                        </p>
-                      </div>
-
-                      {entry.handedOver && (
-                        <span className="shrink-0 rounded-md bg-emerald-600 px-3 py-1 text-sm font-semibold text-white">
-                          Handed over
-                        </span>
-                      )}
-                    </div>
-
-                    <p
-                      className={`mt-3 ${
-                        entry.handedOver
-                          ? "text-emerald-100/90"
-                          : "text-slate-300"
-                      }`}
-                    >
-                      {entry.description}
-                    </p>
-                  </div>
-
-                  {/* ACTION */}
-                  <div className="mt-6 flex justify-end">
-                    {entry.handedOver ? (
-                      <button
-                        onClick={() => setHandedOver(entry.id, false)}
-                        className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                      >
-                        Undo
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setHandedOver(entry.id, true)}
-                        className="rounded-lg bg-white px-8 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                      >
-                        Confirm handover
-                      </button>
-                    )}
-                  </div>
-                </article>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-white/10 bg-slate-950/85 p-12 text-center backdrop-blur-md">
-                <h2 className="font-display text-xl font-bold text-white">
-                  No matches
-                </h2>
-
-                <p className="mt-2 text-slate-400">
-                  Nothing matches that search. Try a name, ID or QR code.
-                </p>
-
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="mt-5 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-white/40 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                >
-                  Clear search
-                </button>
+      <div>
+        {!it ? (
+          <div className="glass card empty"><b>Pick an item</b>Choose a stored item on the left to hand it back to its owner.</div>
+        ) : (
+          <Ticket it={it} tone={it.status === 'Returned' ? 'good' : ''}>
+            {it.status === 'Stored' && <>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14, fontWeight: 600 }}>
+                Ask the student for their ID
+                <input value={sid} onChange={e => { setSid(e.target.value); setErr('') }} placeholder="Student ID" onKeyDown={e => e.key === 'Enter' && confirm()} />
+              </label>
+              {err && <p style={{ color: 'var(--red)', marginTop: 0 }} role="alert">{err}</p>}
+              <button className="btn big" disabled={!sid.trim() || busy} onClick={confirm}>{busy ? 'Saving…' : 'Confirm handover'}</button>
+            </>}
+            {it.status === 'Returned' && (
+              <div className="row" style={{ alignItems: 'center' }}>
+                <span style={{ color: 'var(--green)', fontWeight: 700 }}>Handed back to {it.owner}</span>
+                <button className="btn ghost" onClick={() => window.print()}>Print receipt</button>
               </div>
             )}
-          </div>
-        </div>
-      </main>
+            {it.status !== 'Stored' && it.status !== 'Returned' && <p className="muted" style={{ margin: 0 }}>This item is {it.status.toLowerCase()} and cannot be handed over.</p>}
+          </Ticket>
+        )}
+      </div>
     </div>
-  );
-}
 
-export default Handover;
+    {it?.status === 'Returned' && (
+      <article className="onlyprint report">
+        <header><h1>Handover receipt</h1><div className="muted">CST Luggage Room</div></header>
+        <table>
+          <tbody>
+            <tr><th>Tag number</th><td>{it.tag}</td></tr>
+            {it.location && <tr><th>Collected from</th><td>{it.location}</td></tr>}
+            <tr><th>Date</th><td>{it.returnedOn || new Date().toLocaleDateString('en-CA')}</td></tr>
+            <tr><th>Item</th><td>{it.name}</td></tr>
+            <tr><th>Description</th><td>{it.description}</td></tr>
+            <tr><th>Owner</th><td>{it.owner}</td></tr>
+            <tr><th>Student ID</th><td>{it.studentId}</td></tr>
+          </tbody>
+        </table>
+        <p>The item above was returned to its owner.</p>
+        <div className="sign"><div>Student signature</div><div>Operator signature</div></div>
+      </article>
+    )}
+  </>)
+}

@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/* Dark styles switch on when the <html> element has the "dark" class */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Light theme colors (used when the dark class is not present) */
+:root {
+  color-scheme: light;
+  --overlay: rgb(255 255 255 / 0.5);
+  --panel: rgb(255 255 255 / 0.82);
+  --bar: rgb(255 255 255 / 0.72);
+  --sidebar: rgb(255 255 255 / 0.82);
+  --drawer: rgb(255 255 255 / 0.98);
+  --field: rgb(241 245 249 / 0.9);
+  --line: rgb(15 23 42 / 0.12);
+  --heading: rgb(15 23 42);
+  --body: rgb(51 65 85);
+  --muted: rgb(100 116 139);
+  --accent: rgb(37 99 235);
+  --hover: rgb(15 23 42 / 0.06);
+}
+
+/* Dark theme colors */
+.dark {
+  color-scheme: dark;
+  --overlay: rgb(15 23 42 / 0.4);
+  --panel: rgb(15 23 42 / 0.6);
+  --bar: rgb(15 23 42 / 0.4);
+  --sidebar: rgb(15 23 42 / 0.7);
+  --drawer: rgb(15 23 42 / 0.97);
+  --field: rgb(30 41 59 / 0.6);
+  --line: rgb(255 255 255 / 0.1);
+  --heading: rgb(255 255 255);
+  --body: rgb(203 213 225);
+  --muted: rgb(148 163 184);
+  --accent: rgb(147 197 253);
+  --hover: rgb(255 255 255 / 0.05);
+}
+
+/* Turns the variables above into class names like bg-panel and text-heading */
+@theme inline {
+  --color-overlay: var(--overlay);
+  --color-panel: var(--panel);
+  --color-bar: var(--bar);
+  --color-sidebar: var(--sidebar);
+  --color-drawer: var(--drawer);
+  --color-field: var(--field);
+  --color-line: var(--line);
+  --color-heading: var(--heading);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-hover: var(--hover);
+}

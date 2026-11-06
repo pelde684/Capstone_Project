@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -10,29 +10,26 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import { api, getUser } from "../api";
 import loginBg from "../assets/college.jpeg";
 
 const feedbackTypes = ["Complaint", "Something isn't working", "Suggestion", "Other"];
 const feedbackPages = ["Login", "Dashboard", "Register Item", "My Belongings", "Other / not sure"];
-const FEEDBACK_KEY = "luggage-room-feedback";
+// Feedback is sent to the backend as a complaint (POST /api/complaints), so the admin sees it
+// on the staff site (Admin > Complaints), can forward it and resolve it. The student sees the status here.
+const STATUS_LABEL = {
+  OPEN: ["Received", "bg-amber-500/15 text-amber-700 dark:text-amber-300"],
+  FORWARDED: ["Forwarded", "bg-blue-500/15 text-accent"],
+  IN_PROGRESS: ["In progress", "bg-blue-500/15 text-accent"],
+  RESOLVED: ["Resolved", "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"],
+  CLOSED: ["Closed", "bg-slate-500/15 text-muted"],
+};
 
-function loadFeedback() {
-  try {
-    return JSON.parse(localStorage.getItem(FEEDBACK_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-// TODO: once Tandin's API is ready, send the feedback to the backend here instead
-// of keeping it in this browser's storage, so staff can actually read it.
-function saveFeedback(entry) {
-  try {
-    const saved = loadFeedback();
-    localStorage.setItem(FEEDBACK_KEY, JSON.stringify([entry, ...saved]));
-  } catch {
-    console.warn("Could not save feedback in this browser.");
-  }
+// The type and page are written on the first two lines of the description
+const describe = (type, page, message) => `Type: ${type}\nPage: ${page || "Not specified"}\n\n${message.trim()}`;
+function readDescription(text = "") {
+  const m = text.match(/^Type: (.*)\nPage: (.*)\n\n([\s\S]*)$/);
+  return m ? { type: m[1], page: m[2], message: m[3] } : { type: "", page: "", message: text };
 }
 
 const fieldClass =
@@ -46,21 +43,31 @@ export default function FeedbackPage() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
-  const [history, setHistory] = useState(loadFeedback);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [history, setHistory] = useState([]);
+  const user = getUser();
 
-  const handleSubmit = (e) => {
+  const loadHistory = () =>
+    api("/complaints/mine").then((r) => setHistory(r.data)).catch(() => {});
+  useEffect(() => { loadHistory(); }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    saveFeedback({
-      id: Date.now().toString(36),
-      type,
-      page: page || "Not specified",
-      subject,
-      message,
-      date: new Date().toISOString(),
-      status: "New",
-    });
-    setHistory(loadFeedback());
-    setSent(true);
+    setError("");
+    setSending(true);
+    try {
+      await api("/complaints", {
+        method: "POST",
+        body: { subject: subject.trim(), description: describe(type, page, message) },
+      });
+      setSent(true);
+      loadHistory();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
   };
 
   const sendAnother = () => {
@@ -101,8 +108,8 @@ export default function FeedbackPage() {
               <div className="flex items-center gap-2">
                 <UserCircle2 className="h-8 w-8 text-accent" />
                 <div className="leading-tight">
-                  <p className="text-sm font-semibold text-heading">Student</p>
-                  <p className="text-xs text-body">CST Luggage Room</p>
+                  <p className="text-sm font-semibold text-heading">{user?.name || "Student"}</p>
+                  <p className="text-xs text-body">{user?.studentId || "CST Luggage Room"}</p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted" />
               </div>
@@ -126,7 +133,7 @@ export default function FeedbackPage() {
                     </div>
                     <h2 className="mt-4 text-lg font-semibold text-heading">Thank you!</h2>
                     <p className="mt-1 text-sm text-body">
-                      Your feedback has been sent. We'll use it to improve the system.
+                      Your feedback has been sent to the luggage room admin. You can follow its status below.
                     </p>
                     <button
                       onClick={sendAnother}
@@ -196,6 +203,7 @@ export default function FeedbackPage() {
                           value={subject}
                           onChange={(e) => setSubject(e.target.value)}
                           placeholder="e.g. Photo upload is not working"
+                          maxLength={150}
                           required
                           className={fieldClass}
                         />
@@ -208,17 +216,25 @@ export default function FeedbackPage() {
                           onChange={(e) => setMessage(e.target.value)}
                           placeholder="Describe what happened or what you'd like to see changed."
                           rows={4}
+                          maxLength={1900}
                           required
                           className={`${fieldClass} resize-none`}
                         />
                       </div>
 
+                      {error && (
+                        <p className="rounded-xl border border-red-400/50 bg-red-500/15 px-4 py-3 text-sm text-heading">
+                          Could not send: {error}
+                        </p>
+                      )}
+
                       <button
                         type="submit"
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-md transition-colors hover:bg-blue-600"
+                        disabled={sending}
+                        className="flex w-full disabled:opacity-60 items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-md transition-colors hover:bg-blue-600"
                       >
                         <Send className="h-4 w-4" />
-                        Submit Feedback
+                        {sending ? "Sending…" : "Submit Feedback"}
                       </button>
                     </form>
                   </>
@@ -229,25 +245,34 @@ export default function FeedbackPage() {
                 <div className="rounded-2xl border border-line bg-panel p-5 shadow-md backdrop-blur-md sm:p-8">
                   <h2 className="text-lg font-semibold text-heading">Your Previous Feedback</h2>
                   <div className="mt-4 space-y-3">
-                    {history.map((entry) => (
-                      <div key={entry.id} className="rounded-xl bg-field p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm font-medium text-heading">{entry.subject}</p>
-                          <span className="flex-shrink-0 rounded-full bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-accent">
-                            {entry.status}
-                          </span>
+                    {history.map((entry) => {
+                      const d = readDescription(entry.description);
+                      const [label, tone] = STATUS_LABEL[entry.status] || [entry.status, "bg-blue-500/15 text-accent"];
+                      return (
+                        <div key={entry.id} className="rounded-xl bg-field p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-medium text-heading">{entry.subject}</p>
+                            <span className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${tone}`}>{label}</span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted">
+                            {[d.type, d.page,
+                              new Date(entry.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+                            ].filter(Boolean).join(" • ")}
+                          </p>
+                          <p className="mt-2 whitespace-pre-wrap text-xs text-body">{d.message}</p>
+                          {entry.forwardedTo && (
+                            <p className="mt-2 text-xs text-body">
+                              <span className="font-medium text-heading">Forwarded to:</span> {entry.forwardedTo}
+                            </p>
+                          )}
+                          {entry.resolution && (
+                            <p className="mt-1 whitespace-pre-wrap text-xs text-body">
+                              <span className="font-medium text-heading">Reply from admin:</span> {entry.resolution}
+                            </p>
+                          )}
                         </div>
-                        <p className="mt-1 text-xs text-muted">
-                          {entry.type} • {entry.page} •{" "}
-                          {new Date(entry.date).toLocaleDateString("en-GB", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </p>
-                        <p className="mt-2 text-xs text-body">{entry.message}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

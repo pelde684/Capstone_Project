@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Navigate, NavLink, Link, useNavigate } from 'react-router-dom'
-import { Briefcase, LayoutDashboard, QrCode, ShieldCheck, HandHelping, Users, BarChart3, FileText, LogOut, Bell, UserCircle2, ChevronDown } from 'lucide-react'
+import { Briefcase, LayoutDashboard, QrCode, ShieldCheck, HandHelping, Users, BarChart3, FileText, MessageSquare, LogOut, Sun, Moon, Bell, UserCircle2, ChevronDown } from 'lucide-react'
 import { api, apiAll, getToken, saveToken, clearToken } from './api'
 import { buildItems, buildPeople } from './adapt'
 import Login from './pages/Login'
@@ -12,6 +12,7 @@ import OperatorReport from './pages/OperatorReport'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminTables from './pages/AdminTables'
 import AdminReports from './pages/AdminReports'
+import AdminComplaints from './pages/AdminComplaints'
 
 const opLinks = [
   ['/operator', 'Dashboard', LayoutDashboard, true],
@@ -25,19 +26,23 @@ const adminLinks = [
   ['/admin/students', 'Students', Users],
   ['/admin/reports', 'Reports', BarChart3],
   ['/admin/records', 'Records', FileText],
+  ['/admin/complaints', 'Complaints', MessageSquare],
 ]
 
+// Same toggle as the student site: a button with a sun/moon icon that says which mode it switches to
 function ThemeToggle({ dark, setDark }) {
+  const Icon = dark ? Sun : Moon
+  const label = dark ? 'Light mode' : 'Dark mode'
   return (
-    <button className={'switch' + (dark ? ' dark' : '')} role="switch" aria-checked={dark} aria-label="Dark mode" onClick={() => setDark(!dark)}>
-      <span className="track">
-        <span className="lbl l">Light</span>
-        <span className="lbl d">Dark</span>
-        <span className="knob" />
-      </span>
+    <button type="button" className="themebtn" onClick={() => setDark(!dark)} aria-label={`Switch to ${label.toLowerCase()}`} title={`Switch to ${label.toLowerCase()}`}>
+      <Icon size={16} />{label}
     </button>
   )
 }
+
+// Remembered in the browser under the same key as the student site
+const THEME_KEY = 'luggage-room-theme'
+const savedDark = () => { try { return localStorage.getItem(THEME_KEY) !== 'light' } catch { return true } }
 
 function Shell({ user, pending, dark, setDark, onLogout, title, sub, children }) {
   const [open, setOpen] = useState(false)
@@ -84,10 +89,13 @@ export default function App() {
   const [data, setData] = useState({ items: [], students: [], staff: [], locations: [] })
   const [loaded, setLoaded] = useState(false)
   const [loadErr, setLoadErr] = useState('')
-  const [dark, setDark] = useState(true)
+  const [dark, setDark] = useState(savedDark)
   const [toast, setToast] = useState('')
   const nav = useNavigate()
-  useEffect(() => { document.documentElement.classList.toggle('light', !dark) }, [dark])
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', !dark)
+    try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light') } catch { /* not remembered, still works */ }
+  }, [dark])
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(''), 3500); return () => clearTimeout(t) } }, [toast])
 
   // Everything the pages show comes from the backend. Called after login and after every action.
@@ -190,6 +198,7 @@ export default function App() {
       <Route path="/admin/students" element={ad('Students', 'See who is registered and update their details', <AdminTables items={items} students={students} staff={staff} initial="Students" />)} />
       <Route path="/admin/reports" element={ad('Reports', 'Look at luggage and handover numbers', <AdminReports staff={staff} locations={locations} user={user} />)} />
       <Route path="/admin/records" element={ad('System records', 'Follow what is happening in the luggage room', <AdminTables items={items} students={students} staff={staff} initial="Items" />)} />
+      <Route path="/admin/complaints" element={ad('Complaints', 'Feedback and complaints sent by students', <AdminComplaints />)} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
     {toast && <div className="toast" role="status">{toast}</div>}

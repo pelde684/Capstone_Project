@@ -14,7 +14,7 @@ const SHIFTS = [
 ]
 
 const ACTIONS = {
-  REGISTERED: ['Registered by student', 'Pending'],
+  REGISTERED: ['Registered', 'Pending'],
   DEPOSIT: ['Deposited', 'Pending'],
   STORAGE_VERIFICATION: ['Verified and stored', 'Stored'],
   COLLECTION_REQUEST: ['Marked ready', 'Stored'],
@@ -73,6 +73,7 @@ export default function OperatorReport({ items = [], locations = [], user }) {
     .filter((i) => { const h = new Date(i.registeredAt).getHours(); return h >= fromHour && h < toHour })
     .map((i) => ({
       id: `reg-${i.itemId ?? i.id}`,
+      dropOffId: i.dropOffId,
       action: 'REGISTERED',
       transactionTime: i.registeredAt,
       itemName: i.name,
@@ -81,12 +82,34 @@ export default function OperatorReport({ items = [], locations = [], user }) {
       ownerStudentId: i.studentId,
       locationName: null,
       operatorName: 'Student (online)',
-      remarks: `QR ${i.tag}`,
+      remarks: '',
     })),
   [items, date, fromHour, toHour])
   const activity = [...registered, ...rows].sort((a, b) => a.transactionTime.localeCompare(b.transactionTime))
 
   const count = (a) => rows.filter((t) => t.action === a).length
+
+  // QR short code of each drop-off, and the activity grouped per QR (one row per student's drop-off),
+  // so 10+ students still give a short table. "Show each action" lists every single step instead.
+  const tagByDrop = useMemo(() => Object.fromEntries(items.map((i) => [i.dropOffId, i.tag])), [items])
+  const qrOf = (t) => tagByDrop[t.dropOffId] || (t.dropOffId ? `#${t.dropOffId}` : '-')
+  const groups = useMemo(() => {
+    const map = new Map()
+    for (const t of activity) {
+      const k = t.dropOffId ?? `item-${t.itemId}`
+      if (!map.has(k)) map.set(k, { key: k, first: t, items: new Set(), steps: new Map(), shelves: new Set(), ops: new Set(), remarks: new Set() })
+      const g = map.get(k)
+      g.items.add(t.itemName)
+      const st = g.steps.get(t.action) || { n: 0, last: t.transactionTime }
+      st.n += 1; st.last = t.transactionTime
+      g.steps.set(t.action, st)
+      if (t.locationName) g.shelves.add(t.locationName)
+      if (t.action !== 'REGISTERED' && t.operatorName) g.ops.add(t.operatorName)
+      if (t.remarks) g.remarks.add(t.remarks)
+    }
+    return [...map.values()]
+  }, [activity])
+  const [detail, setDetail] = useState(false)
   const students = new Set(activity.map((t) => t.ownerStudentId)).size
 
   // What is in the room right now, per shelf
@@ -217,7 +240,7 @@ export default function OperatorReport({ items = [], locations = [], user }) {
       </header>
 
       <div className="rsum five">
-        <div><small>Registered by students</small><b>{registered.length}</b></div>
+        <div><small>Items registered</small><b>{registered.length}</b></div>
         <div><small>Deposited</small><b>{count('DEPOSIT')}</b></div>
         <div><small>Verified and stored</small><b>{count('STORAGE_VERIFICATION')}</b></div>
         <div><small>Handed back</small><b>{count('COLLECTION')}</b></div>
@@ -225,12 +248,45 @@ export default function OperatorReport({ items = [], locations = [], user }) {
       </div>
       <p className="rnote">{activity.length} action{activity.length === 1 ? '' : 's'} for {students} student{students === 1 ? '' : 's'} during this shift.</p>
 
-      <h3>Activity during the shift</h3>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+        <h3>Activity during the shift</h3>
+        {activity.length > 0 && (
+          <button type="button" className="btn ghost sm noprint" onClick={() => setDetail((d) => !d)}>
+            {detail ? 'Group by student' : 'Show each action'}
+          </button>
+        )}
+      </div>
       {activity.length === 0 ? (
         <div className="rempty"><b>No activity in this shift.</b> Pick another date, shift or operator.</div>
+      ) : !detail ? (
+        <div className="tw"><table className="rtable">
+          <thead><tr><th>Student</th><th>Student ID</th><th>QR</th><th>Items</th><th>What happened</th><th>Shelf</th>{!operatorId && <th>Operator</th>}<th>Remarks</th></tr></thead>
+          <tbody>{groups.map((g) => (
+            <tr key={g.key}>
+              <td>{g.first.ownerName}{g.first.ownerHostel && <small className="rsub">{g.first.ownerHostel}</small>}</td>
+              <td className="nw">{g.first.ownerStudentId}</td>
+              <td className="nw">{qrOf(g.first)}</td>
+              <td>{[...g.items].join(', ')}<small className="rsub">{g.items.size} item{g.items.size === 1 ? '' : 's'}</small></td>
+              <td>
+                {[...g.steps].map(([action, st]) => {
+                  const [label, tone] = ACTIONS[action] || [action, '']
+                  return (
+                    <div key={action} className="nw">
+                      <span className={'badge ' + tone}>{label}</span>
+                      <span className="muted" style={{ fontSize: 13 }}> {st.n > 1 ? `×${st.n} · ` : ''}{time(st.last)}</span>
+                    </div>
+                  )
+                })}
+              </td>
+              <td>{[...g.shelves].join(', ') || '-'}</td>
+              {!operatorId && <td>{[...g.ops].join(', ') || '-'}</td>}
+              <td>{[...g.remarks].join('; ')}</td>
+            </tr>
+          ))}</tbody>
+        </table></div>
       ) : (
         <div className="tw"><table className="rtable">
-          <thead><tr><th>Time</th><th>Action</th><th>Item</th><th>Student</th><th>Student ID</th><th>Shelf</th>{!operatorId && <th>Operator</th>}<th>Remarks</th></tr></thead>
+          <thead><tr><th>Time</th><th>Action</th><th>Item</th><th>Student</th><th>Student ID</th><th>QR</th><th>Shelf</th>{!operatorId && <th>Operator</th>}<th>Remarks</th></tr></thead>
           <tbody>{activity.map((t) => {
             const [label, tone] = ACTIONS[t.action] || [t.action, '']
             return (
@@ -240,6 +296,7 @@ export default function OperatorReport({ items = [], locations = [], user }) {
                 <td>{t.itemName}</td>
                 <td>{t.ownerName}{t.ownerHostel && <small className="rsub">{t.ownerHostel}</small>}</td>
                 <td className="nw">{t.ownerStudentId}</td>
+                <td className="nw">{qrOf(t)}</td>
                 <td>{t.locationName || '-'}</td>
                 {!operatorId && <td>{t.operatorName}</td>}
                 <td>{t.remarks || ''}</td>
@@ -285,14 +342,6 @@ export default function OperatorReport({ items = [], locations = [], user }) {
         </p>
       )}
 
-      {operatorId && (
-        <div className="sign">
-          <div style={{ maxWidth: 360 }}>
-            <b style={{ display: 'block', color: 'var(--text)', fontSize: 16, marginBottom: 2 }}>{opName}</b>
-            Operator
-          </div>
-        </div>
-      )}
     </article>
   </>)
 }

@@ -380,7 +380,7 @@ export default function AdminReports({ staff = [], locations = [], user }) {
               <small className="muted">Submitted {niceTime(r.updatedAt || r.submittedAt)}</small>
             </div>
             <div className="shiftnums">
-              {r.registered != null && <span>Registered by students <b>{r.registered}</b></span>}
+              {r.registered != null && <span>Items registered <b>{r.registered}</b></span>}
               <span>Deposited <b>{r.deposited}</b></span>
               <span>Stored <b>{r.stored}</b></span>
               <span>Handed back <b>{r.handedBack}</b></span>

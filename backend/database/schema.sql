@@ -136,6 +136,8 @@ CREATE TABLE IF NOT EXISTS complaints (
   complaint_id   INT AUTO_INCREMENT PRIMARY KEY,
   complainant_id INT NOT NULL,
   item_id        INT NULL,
+  category       ENUM('COMPLAINT','NOT_WORKING','SUGGESTION','OTHER') NOT NULL DEFAULT 'COMPLAINT',
+  page           VARCHAR(50) NULL,
   subject        VARCHAR(150) NOT NULL,
   description    TEXT NOT NULL,
   status         ENUM('OPEN','FORWARDED','IN_PROGRESS','RESOLVED','CLOSED') NOT NULL DEFAULT 'OPEN',
@@ -146,6 +148,7 @@ CREATE TABLE IF NOT EXISTS complaints (
   updated_at     TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   resolved_at    TIMESTAMP NULL,
   INDEX idx_complaints_status (status, created_at),
+  INDEX idx_complaints_category (category, created_at),
   CONSTRAINT fk_complaints_complainant FOREIGN KEY (complainant_id) REFERENCES users(user_id),
   CONSTRAINT fk_complaints_item        FOREIGN KEY (item_id)        REFERENCES items(item_id),
   CONSTRAINT fk_complaints_handler     FOREIGN KEY (handled_by)     REFERENCES users(user_id)

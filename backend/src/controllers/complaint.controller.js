@@ -9,10 +9,12 @@ const { addDateRange } = require("../utils/dates");
 // The student can always see its status and who it was forwarded to.
 
 const STATUSES = ["OPEN", "FORWARDED", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+// Type of feedback (migration 008): a complaint, something not working on the website, a suggestion, or other
+const CATEGORIES = ["COMPLAINT", "NOT_WORKING", "SUGGESTION", "OTHER"];
 const DONE = ["RESOLVED", "CLOSED"];
 
 const SELECT = `
-  SELECT c.complaint_id AS id, c.subject, c.description, c.status,
+  SELECT c.complaint_id AS id, c.category, c.page, c.subject, c.description, c.status,
          c.forwarded_to AS forwardedTo, c.resolution,
          c.created_at AS createdAt, c.updated_at AS updatedAt, c.resolved_at AS resolvedAt,
          c.complainant_id AS studentUserId, u.full_name AS studentName, u.student_id AS studentId,
@@ -41,10 +43,14 @@ async function loadOne(id) {
 
 // ---- Student ----
 
-// Body: { subject, description, itemId? }  (itemId must be one of the student's own items)
+// Body: { subject, description, category?, page?, itemId? }  (itemId must be one of the student's own items)
+//   category: COMPLAINT (default) | NOT_WORKING | SUGGESTION | OTHER;  page: which page it is about, e.g. "My Belongings"
 exports.create = asyncHandler(async (req, res) => {
   const subject = text(req.body?.subject, "subject", 150, true);
   const description = text(req.body?.description, "description", 2000, true);
+  const category = String(req.body?.category ?? "COMPLAINT").trim().toUpperCase();
+  if (!CATEGORIES.includes(category)) throw new HttpError(400, `category must be one of: ${CATEGORIES.join(", ")}`);
+  const page = text(req.body?.page, "page", 50, false);
   let itemId = req.body?.itemId ?? null;
   if (itemId !== null && itemId !== "") {
     itemId = Number(itemId);
@@ -57,9 +63,9 @@ exports.create = asyncHandler(async (req, res) => {
   }
 
   const [r] = await db.query(
-    `INSERT INTO complaints (complainant_id, item_id, subject, description, status, created_at, updated_at)
-     VALUES (?,?,?,?, 'OPEN', NOW(), NOW())`,
-    [req.user.id, itemId, subject, description]);
+    `INSERT INTO complaints (complainant_id, item_id, category, page, subject, description, status, created_at, updated_at)
+     VALUES (?,?,?,?,?,?, 'OPEN', NOW(), NOW())`,
+    [req.user.id, itemId, category, page, subject, description]);
   res.status(201).json(await loadOne(r.insertId));
 });
 
@@ -78,7 +84,7 @@ exports.getOne = asyncHandler(async (req, res) => {
 
 // ---- Admin ----
 
-// Filters: status, q (subject, student name or student ID), from, to (dates, inclusive). Also returns counts per status.
+// Filters: status, category, q (subject, student name or student ID), from, to (dates, inclusive). Also returns counts per status.
 exports.list = asyncHandler(async (req, res) => {
   const { page, limit, offset } = paginate(req.query);
   const where = [];
@@ -86,6 +92,11 @@ exports.list = asyncHandler(async (req, res) => {
   if (req.query.status) {
     if (!STATUSES.includes(req.query.status)) throw new HttpError(400, `status must be one of: ${STATUSES.join(", ")}`);
     where.push("c.status = ?"); params.push(req.query.status);
+  }
+  if (req.query.category) {
+    const category = String(req.query.category).trim().toUpperCase();
+    if (!CATEGORIES.includes(category)) throw new HttpError(400, `category must be one of: ${CATEGORIES.join(", ")}`);
+    where.push("c.category = ?"); params.push(category);
   }
   if (req.query.q) {
     where.push("(c.subject LIKE ? OR u.full_name LIKE ? OR u.student_id LIKE ?)");

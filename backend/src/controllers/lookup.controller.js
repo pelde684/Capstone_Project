@@ -95,6 +95,68 @@ exports.updateHostel = asyncHandler(async (req, res) => {
   res.json({ message: "Hostel updated" });
 });
 
+// ---- Departments and their allocated storage room (read: everyone, write: Admin) ----
+// e.g. SWE -> HF 210. Several departments can share one room.
+// The room can be sent as roomId (an existing storage location) or roomName (a hostel room such as "HA 101").
+// A hostel room is added to storage_locations the first time it is allocated, so only rooms in use appear in lists.
+async function checkRoom(body) {
+  if (body?.roomName !== undefined && body.roomName !== null && body.roomName !== "") {
+    const name = String(body.roomName).trim().replace(/\s+/g, " ").toUpperCase();
+    if (!/^[A-Z]{1,6} \d{3}$/.test(name)) throw new HttpError(400, "roomName must look like \"HA 101\"");
+    const [[found]] = await db.query("SELECT location_id, is_active FROM storage_locations WHERE location_name = ?", [name]);
+    if (found) {
+      if (!found.is_active) await db.query("UPDATE storage_locations SET is_active = 1 WHERE location_id = ?", [found.location_id]);
+      return found.location_id;
+    }
+    const [r] = await db.query(
+      "INSERT INTO storage_locations (location_name, description, is_active, created_at) VALUES (?, 'Hostel room', 1, NOW())", [name]);
+    return r.insertId;
+  }
+  const locationId = body?.roomId;
+  if (locationId === undefined) return undefined; // not sent: leave as it is
+  if (locationId === null || locationId === "") return null; // no room allocated
+  const id = Number(locationId);
+  const [[room]] = Number.isInteger(id) ? await db.query("SELECT location_id FROM storage_locations WHERE location_id = ?", [id]) : [[]];
+  if (!room) throw new HttpError(400, "Choose a storage room from the list");
+  return id;
+}
+
+exports.listDepartments = asyncHandler(async (req, res) => {
+  const showAll = req.user.role === "Admin" && req.query.all === "1";
+  const [rows] = await db.query(
+    `SELECT d.department_id AS id, d.department_name AS name, d.is_active AS isActive,
+            d.location_id AS roomId, l.location_name AS room, l.capacity AS roomCapacity,
+            (SELECT COUNT(*) FROM items i WHERE i.location_id = d.location_id
+                AND i.status IN ('STORED','READY_FOR_COLLECTION')) AS roomUsed,
+            (SELECT COUNT(*) FROM users u WHERE u.department_id = d.department_id) AS students
+       FROM departments d LEFT JOIN storage_locations l ON l.location_id = d.location_id
+      ${showAll ? "" : "WHERE d.is_active = 1"} ORDER BY d.department_name`);
+  res.json({ data: rows.map((d) => ({ ...d, isActive: !!d.isActive, roomUsed: Number(d.roomUsed), students: Number(d.students) })) });
+});
+
+// Body: { name, roomId? | roomName? }
+exports.createDepartment = asyncHandler(async (req, res) => {
+  const name = String(req.body?.name ?? "").trim();
+  if (!name || name.length > 100) throw new HttpError(400, "name is required (max 100 characters)");
+  const roomId = (await checkRoom(req.body)) ?? null;
+  const [r] = await db.query("INSERT INTO departments (department_name, location_id, is_active, created_at) VALUES (?,?,1,NOW())", [name, roomId]);
+  res.status(201).json({ id: r.insertId, name, roomId, isActive: true });
+});
+
+// Body: { name?, roomId? (null = no room) | roomName? ("HA 101"), isActive? }
+exports.updateDepartment = asyncHandler(async (req, res) => {
+  const { name, isActive } = req.body || {};
+  if (name !== undefined && (!String(name).trim() || String(name).trim().length > 100))
+    throw new HttpError(400, "name must be 1 to 100 characters");
+  const roomId = await checkRoom(req.body);
+  const sets = ["department_name = COALESCE(?, department_name)", "is_active = COALESCE(?, is_active)"];
+  const params = [name !== undefined ? String(name).trim() : null, typeof isActive === "boolean" ? (isActive ? 1 : 0) : null];
+  if (roomId !== undefined) { sets.push("location_id = ?"); params.push(roomId); }
+  const [r] = await db.query(`UPDATE departments SET ${sets.join(", ")} WHERE department_id = ?`, [...params, req.params.id]);
+  if (!r.affectedRows) throw new HttpError(404, "Department not found");
+  res.json({ message: "Department updated" });
+});
+
 // ---- Semesters (read: everyone, write: Admin) ----
 // A semester is a date range. Drop-offs registered inside it belong to it.
 async function checkNoOverlap(start, end, exceptId = 0) {

@@ -34,8 +34,9 @@ const inputClass = "w-full bg-transparent text-sm text-heading outline-none plac
 const optionClass = "bg-white text-slate-900 dark:bg-slate-800 dark:text-white";
 
 export default function SignupPage() {
-  const [form, setForm] = useState({ name: "", email: "", role: "Student", studentId: "", hostelId: "", staffCode: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ name: "", email: "", role: "Student", studentId: "", departmentId: "", hostelId: "", staffCode: "", password: "", confirm: "" });
   const [hostels, setHostels] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     api("/auth/hostels").then((r) => setHostels(r.data)).catch(() => {});
+    api("/auth/departments").then((r) => setDepartments(r.data)).catch(() => {});
   }, []);
 
   const handleSubmit = async (e) => {
@@ -61,7 +63,7 @@ export default function SignupPage() {
           password: form.password,
           role: form.role,
           ...(isStudent
-            ? { studentId: form.studentId.trim(), hostelId: form.hostelId || undefined }
+            ? { studentId: form.studentId.trim(), departmentId: form.departmentId || undefined, hostelId: form.hostelId || undefined }
             : { staffCode: form.staffCode.trim() || undefined }),
         },
       });
@@ -121,6 +123,14 @@ export default function SignupPage() {
               <>
                 <Field label="Student ID" icon={FileText}>
                   <input value={form.studentId} onChange={set("studentId")} placeholder="02250123" inputMode="numeric" pattern="\d{5,12}" title="Numbers only, e.g. 02250123" required className={inputClass} />
+                </Field>
+                <Field label="Programme" icon={Briefcase} hint={departments.length ? "(decides your storage room)" : "(none set up yet)"}>
+                  <select value={form.departmentId} onChange={set("departmentId")} required={departments.length > 0} className={`${inputClass} cursor-pointer`}>
+                    <option value="" className={optionClass}>Select your programme</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id} className={optionClass}>{d.name}</option>
+                    ))}
+                  </select>
                 </Field>
                 <Field label="Hostel" icon={Users} hint="(optional)">
                   <select value={form.hostelId} onChange={set("hostelId")} className={`${inputClass} cursor-pointer`}>

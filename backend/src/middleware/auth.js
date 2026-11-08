@@ -19,8 +19,13 @@ exports.authenticate = asyncHandler(async (req, res, next) => {
 
   const [rows] = await db.query(
     `SELECT u.user_id AS id, u.full_name AS name, u.email, u.student_id AS studentId,
-            u.is_active AS isActive, r.role_name AS role
-       FROM users u JOIN roles r ON r.role_id = u.role_id WHERE u.user_id = ?`,
+            u.is_active AS isActive, r.role_name AS role,
+            u.department_id AS departmentId, dpt.department_name AS department,
+            dpt.location_id AS roomId, rl.location_name AS room
+       FROM users u JOIN roles r ON r.role_id = u.role_id
+       LEFT JOIN departments dpt ON dpt.department_id = u.department_id
+       LEFT JOIN storage_locations rl ON rl.location_id = dpt.location_id
+      WHERE u.user_id = ?`,
     [payload.id]
   );
   const user = rows[0];

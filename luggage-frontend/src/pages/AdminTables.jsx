@@ -1,5 +1,6 @@
 import Photos from '../Photos'
 import { useState, useEffect } from 'react'
+import { api } from '../api'
 import { ChevronDown, CalendarDays, X } from 'lucide-react'
 
 const statusOrder = ['Pending', 'Stored', 'Returned', 'Rejected']
@@ -26,6 +27,37 @@ const fmtDay = (s) =>
 
 const rank = { reg: 0, ok: 1, bad: 1, back: 2 }
 
+// Admin sets a student's programme; the programme decides which storage room their items go to
+function DepartmentPicker({ stu, onChanged }) {
+  const [depts, setDepts] = useState([])
+  const [value, setValue] = useState(stu.departmentId ?? '')
+  const [msg, setMsg] = useState('')
+  useEffect(() => { api('/departments').then((r) => setDepts(r.data)).catch(() => {}) }, [])
+  useEffect(() => { setValue(stu.departmentId ?? ''); setMsg('') }, [stu.userId, stu.departmentId])
+
+  const change = async (e) => {
+    const v = e.target.value
+    setValue(v); setMsg('Saving…')
+    try {
+      await api(`/users/${stu.userId}`, { method: 'PUT', body: { departmentId: v || null } })
+      const d = depts.find((x) => String(x.id) === v)
+      setMsg(d ? `Saved. Storage room: ${d.room || 'none allocated yet'}` : 'Saved.')
+      onChanged?.()
+    } catch (ex) { setMsg('Could not save: ' + ex.message) }
+  }
+
+  return (
+    <label style={{ display: 'grid', gap: 6, margin: '14px 0', fontWeight: 600, fontSize: 14 }}>
+      Programme
+      <select value={value} onChange={change} aria-label={`Programme of ${stu.name}`}>
+        <option value="">Not set</option>
+        {depts.map((d) => <option key={d.id} value={d.id}>{d.name}{d.room ? ` (room ${d.room})` : ''}</option>)}
+      </select>
+      {msg && <span className="muted" role="status" style={{ fontWeight: 400 }}>{msg}</span>}
+    </label>
+  )
+}
+
 function Day({ id, title, meta, open, toggle, children }) {
   return (
     <section className={'acc' + (open ? ' open' : '')}>
@@ -49,7 +81,7 @@ function Day({ id, title, meta, open, toggle, children }) {
   )
 }
 
-export default function AdminTables({ items, students, staff, initial = 'Items' }) {
+export default function AdminTables({ items, students, staff, initial = 'Items', onChanged }) {
   const [tab, setTab] = useState(initial)
   const [q, setQ] = useState('')
   const [st, setSt] = useState('All')
@@ -223,12 +255,14 @@ export default function AdminTables({ items, students, staff, initial = 'Items' 
       <div className="shead">
         <div>
           <h3>{stu.name}</h3>
-          <p className="muted">{stu.studentId}{stu.hostel ? `, ${stu.hostel}` : ''}</p>
+          <p className="muted">{stu.studentId}{stu.department ? `, ${stu.department}` : ''}{stu.hostel ? `, ${stu.hostel}` : ''}</p>
         </div>
         <button className="btn ghost sm" onClick={() => setSel(null)}>
           Close
         </button>
       </div>
+
+      <DepartmentPicker stu={stu} onChanged={onChanged} />
 
       <div className="schips">
         {statusOrder.map(s => {
@@ -408,7 +442,7 @@ export default function AdminTables({ items, students, staff, initial = 'Items' 
                     <tr>
                       {stu
                         ? <><th>Name</th><th>Student ID</th><th>Items</th></>
-                        : <><th>Student ID</th><th>Name</th><th>Hostel</th><th>Items</th></>
+                        : <><th>Student ID</th><th>Name</th><th>Programme</th><th>Hostel</th><th>Items</th></>
                       }
                     </tr>
                   </thead>
@@ -439,7 +473,7 @@ export default function AdminTables({ items, students, staff, initial = 'Items' 
                         >
                           {stu
                             ? <>{nameCell}<td>{s.studentId}</td><td>{n}</td></>
-                            : <><td>{s.studentId}</td>{nameCell}<td>{s.hostel || '-'}</td><td>{n}</td></>
+                            : <><td>{s.studentId}</td>{nameCell}<td>{s.department || '-'}</td><td>{s.hostel || '-'}</td><td>{n}</td></>
                           }
                         </tr>
                       )

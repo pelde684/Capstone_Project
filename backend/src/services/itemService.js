@@ -9,6 +9,8 @@ const ITEM_JOINS = `
     JOIN categories c ON c.category_id = i.category_id
     LEFT JOIN storage_locations l ON l.location_id = i.location_id
     LEFT JOIN hostels h ON h.hostel_id = u.hostel_id
+    LEFT JOIN departments dpt ON dpt.department_id = u.department_id
+    LEFT JOIN storage_locations al ON al.location_id = dpt.location_id
     LEFT JOIN drop_offs d ON d.drop_off_id = i.drop_off_id
     LEFT JOIN semesters s ON s.semester_id = d.semester_id
     LEFT JOIN qr_codes q ON q.drop_off_id = i.drop_off_id`;
@@ -23,6 +25,8 @@ const ITEM_SELECT = `
          i.owner_id AS ownerId, i.drop_off_id AS dropOffId, q.qr_value AS qrValue,
          u.full_name AS ownerName, u.student_id AS ownerStudentId,
          u.hostel_id AS ownerHostelId, h.hostel_name AS ownerHostel,
+         u.department_id AS ownerDepartmentId, dpt.department_name AS ownerDepartment,
+         dpt.location_id AS allocatedLocationId, al.location_name AS allocatedLocation,
          d.semester_id AS semesterId, s.semester_name AS semesterName,
          i.category_id AS categoryId, c.category_name AS categoryName,
          i.location_id AS locationId, l.location_name AS locationName

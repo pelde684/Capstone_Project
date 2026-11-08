@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { UserCircle2, ChevronDown, ChevronLeft, ChevronRight, Package, X, ZoomIn } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import NotificationBell from "../components/NotificationBell";
+import MyRoom from "../components/MyRoom";
 import { useBelongings } from "../context/BelongingsContext";
 import { getUser } from "../api";
 import loginBg from "../assets/college.jpeg";
@@ -36,6 +37,14 @@ const legend = [
   { label: "Stored", dot: "bg-emerald-400" },
   { label: "Not registered", dot: "bg-red-400" },
 ];
+
+// Where the item is right now, in words the student understands
+function whereIs(item) {
+  if (item.status === "Returned") return "Collected by you";
+  if (item.status === "Not Registered") return "Cancelled";
+  if (item.location) return item.status === "Stored" ? item.location : `${item.location} (waiting for verification)`;
+  return item.room ? `Not dropped off yet - bring it to ${item.room}` : "Not in the luggage room yet - bring it for drop-off";
+}
 
 export default function MyBelongings() {
   const navigate = useNavigate();
@@ -92,6 +101,7 @@ export default function MyBelongings() {
           </header>
 
           <main className="px-4 py-5 sm:px-8 sm:py-6">
+            <MyRoom />
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-body">
@@ -176,6 +186,10 @@ export default function MyBelongings() {
                           {item.description && (
                             <p className="mt-1 text-xs text-muted">{item.description}</p>
                           )}
+                          <p className="mt-1 text-xs text-body">
+                            <span className="font-medium text-heading">Location: </span>
+                            {whereIs(item)}
+                          </p>
                         </div>
                       </div>
 

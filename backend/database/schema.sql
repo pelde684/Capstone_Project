@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   phone         VARCHAR(20),
   hostel_id     INT NULL,
+  department_id INT NULL,  -- 009, foreign key added after the departments table below
   is_active     TINYINT(1) NOT NULL DEFAULT 1,
   created_at    TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -93,6 +94,18 @@ CREATE TABLE IF NOT EXISTS storage_locations (
   is_active     TINYINT(1) NOT NULL DEFAULT 1,
   created_at    TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Departments and the storage room allocated to each (009_departments.sql)
+CREATE TABLE IF NOT EXISTS departments (
+  department_id   INT AUTO_INCREMENT PRIMARY KEY,
+  department_name VARCHAR(100) NOT NULL UNIQUE,
+  location_id     INT NULL,
+  is_active       TINYINT(1) NOT NULL DEFAULT 1,
+  created_at      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_departments_location FOREIGN KEY (location_id) REFERENCES storage_locations(location_id)
+);
+ALTER TABLE users ADD CONSTRAINT fk_users_department FOREIGN KEY (department_id) REFERENCES departments(department_id);
+-- 010_programmes.sql adds the 10 programmes: SWE, ME, EE, EG, ECE, CE, IT, Architecture, Water Resources, ICE
 
 -- Individual shelves inside storage locations.
 -- Source: 008_create_shelves.sql

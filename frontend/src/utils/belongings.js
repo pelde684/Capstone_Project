@@ -24,6 +24,8 @@ export function flattenDropOffs(dropOffs) {
       photo: it.photographUrl,
       photos: it.photos?.length ? it.photos : it.photographUrl ? [it.photographUrl] : [],
       status: STATUS_LABEL[it.status] || it.status,
+      location: it.locationName || "", // storage location the operator put it in (empty until verified)
+      room: it.allocatedLocation || "", // room allocated to the student's department
       apiStatus: it.status,
       date: new Date(it.registeredAt).toLocaleDateString("en-GB", {
         day: "numeric",

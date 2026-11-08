@@ -34,7 +34,7 @@ exports.login = asyncHandler(async (req, res) => {
 });
 
 // Self sign-up from the shared Register page. Logs the new user in straight away (same reply as login).
-// Body: { name, email, password, role: Student|Operator|Admin, studentId? (students), hostelId?, staffCode? }
+// Body: { name, email, password, role: Student|Operator|Admin, studentId? (students), hostelId?, departmentId?, staffCode? }
 // If STAFF_SIGNUP_CODE is set in .env, signing up as Operator or Admin needs that code - set it on the live site
 // so a stranger cannot make themselves an admin. Without it (local testing) anyone can pick any role.
 const sameText = (a, b) => {
@@ -67,6 +67,14 @@ exports.register = asyncHandler(async (req, res) => {
     if (!hostel) throw new HttpError(400, "Choose a hostel from the list");
   }
 
+  let departmentId = null;
+  if (role === "Student" && body.departmentId !== undefined && body.departmentId !== null && body.departmentId !== "") {
+    departmentId = Number(body.departmentId);
+    const [[dept]] = Number.isInteger(departmentId)
+      ? await db.query("SELECT department_id FROM departments WHERE department_id = ? AND is_active = 1", [departmentId]) : [[]];
+    if (!dept) throw new HttpError(400, "Choose a programme from the list");
+  }
+
   const [[taken]] = await db.query("SELECT email, student_id AS studentId FROM users WHERE email = ? OR (student_id IS NOT NULL AND student_id = ?) LIMIT 1",
     [email, studentId]);
   if (taken) throw new HttpError(409, taken.email === email ? "An account with this email already exists - log in instead" : "An account with this student ID already exists - log in instead");
@@ -75,12 +83,18 @@ exports.register = asyncHandler(async (req, res) => {
   if (!roleRow) throw new HttpError(500, `Role "${role}" is missing from the roles table - run: npm run seed`);
 
   const [r] = await db.query(
-    `INSERT INTO users (role_id, student_id, full_name, email, password_hash, hostel_id, is_active, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,1,NOW(),NOW())`,
-    [roleRow.role_id, role === "Student" ? studentId : null, name, email, await bcrypt.hash(password, 10), hostelId]);
+    `INSERT INTO users (role_id, student_id, full_name, email, password_hash, hostel_id, department_id, is_active, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,1,NOW(),NOW())`,
+    [roleRow.role_id, role === "Student" ? studentId : null, name, email, await bcrypt.hash(password, 10), hostelId, departmentId]);
 
   const user = { id: r.insertId, name, email, studentId: role === "Student" ? studentId : null, role };
   res.status(201).json({ token: signToken(user), user: publicUser(user) });
+});
+
+// Active departments for the Register page (public, names only)
+exports.departments = asyncHandler(async (req, res) => {
+  const [rows] = await db.query("SELECT department_id AS id, department_name AS name FROM departments WHERE is_active = 1 ORDER BY department_name");
+  res.json({ data: rows });
 });
 
 // Active hostels for the Register page (public, names only)
@@ -89,7 +103,11 @@ exports.hostels = asyncHandler(async (req, res) => {
   res.json({ data: rows });
 });
 
-exports.me = (req, res) => res.json({ user: publicUser(req.user) });
+// Also says which department the user is in and which storage room that department uses
+exports.me = (req, res) => {
+  const { departmentId = null, department = null, roomId = null, room = null } = req.user;
+  res.json({ user: { ...publicUser(req.user), departmentId, department, roomId, room } });
+};
 
 exports.changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};

@@ -44,6 +44,9 @@ export function buildItems(apiItems, txs, emailById = {}) {
       owner: i.ownerName,
       studentId: i.ownerStudentId,
       hostel: i.ownerHostel || '',
+      department: i.ownerDepartment || '',
+      room: i.allocatedLocation || '', // storage room allocated to the student's department
+      roomId: i.allocatedLocationId ?? null,
       semester: i.semesterName || '',
       location: i.locationName || '',
       status,
@@ -66,6 +69,8 @@ export function buildPeople(users) {
     name: u.name,
     email: u.email,
     hostel: u.hostel || '',
+    departmentId: u.departmentId ?? null,
+    department: u.department || '',
     active: u.isActive,
   }))
   const staff = users.filter((u) => u.role !== 'Student').map((u) => ({

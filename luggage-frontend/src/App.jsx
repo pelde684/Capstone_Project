@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Navigate, NavLink, Link } from 'react-router-dom'
-import { Briefcase, LayoutDashboard, QrCode, ShieldCheck, HandHelping, Users, BarChart3, FileText, MessageSquare, LogOut, Sun, Moon, Bell, UserCircle2, ChevronDown } from 'lucide-react'
+import { Briefcase, LayoutDashboard, QrCode, ShieldCheck, HandHelping, Users, BarChart3, FileText, MessageSquare, LogOut, Sun, Moon, Bell, UserCircle2, ChevronDown, Package } from 'lucide-react'
 import { api, apiAll, getToken, clearToken, LOGIN_URL } from './api'
 import { buildItems, buildPeople } from './adapt'
 import OperatorDashboard from './pages/OperatorDashboard'
@@ -12,6 +12,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import AdminTables from './pages/AdminTables'
 import AdminReports from './pages/AdminReports'
 import AdminComplaints from './pages/AdminComplaints'
+import Rooms from './pages/Rooms'
 
 const opLinks = [
   ['/operator', 'Dashboard', LayoutDashboard, true],
@@ -19,6 +20,7 @@ const opLinks = [
   ['/operator/verify', 'Verification', ShieldCheck],
   ['/operator/handover', 'Handover', HandHelping],
   ['/operator/report', 'Report', FileText],
+  ['/operator/rooms', 'Rooms', Package],
 ]
 const adminLinks = [
   ['/admin', 'Dashboard', LayoutDashboard, true],
@@ -26,6 +28,7 @@ const adminLinks = [
   ['/admin/reports', 'Reports', BarChart3],
   ['/admin/records', 'Records', FileText],
   ['/admin/complaints', 'Complaints', MessageSquare],
+  ['/admin/rooms', 'Rooms', Package],
 ]
 
 // Same toggle as the student site: a button with a sun/moon icon that says which mode it switches to
@@ -191,9 +194,11 @@ export default function App() {
       <Route path="/operator/handover" element={op('Handover', 'Return stored items to their owners', <Handover items={items} actions={actions} />)} />
       <Route path="/operator/report" element={op('Shift report', 'What happened during a shift, ready to print', <OperatorReport items={items} locations={locations} user={user} />)} />
       <Route path="/admin" element={ad('Admin Dashboard', 'QR Luggage Room Management System', <AdminDashboard items={items} students={students} />)} />
-      <Route path="/admin/students" element={ad('Students', 'See who is registered and update their details', <AdminTables items={items} students={students} staff={staff} initial="Students" />)} />
+      <Route path="/admin/students" element={ad('Students', 'See who is registered and update their details', <AdminTables items={items} students={students} staff={staff} initial="Students" onChanged={() => reload()} />)} />
       <Route path="/admin/reports" element={ad('Reports', 'Look at luggage and handover numbers', <AdminReports staff={staff} locations={locations} user={user} />)} />
       <Route path="/admin/records" element={ad('System records', 'Follow what is happening in the luggage room', <AdminTables items={items} students={students} staff={staff} initial="Items" />)} />
+      <Route path="/operator/rooms" element={op('Rooms', 'Which storage room each department uses', <Rooms canEdit={false} />)} />
+      <Route path="/admin/rooms" element={ad('Rooms', 'Storage rooms and the department allocated to each', <Rooms canEdit onChanged={() => reload()} />)} />
       <Route path="/admin/complaints" element={ad('Complaints', 'Feedback and complaints sent by students', <AdminComplaints />)} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

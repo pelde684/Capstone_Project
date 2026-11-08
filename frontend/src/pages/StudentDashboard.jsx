@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import NotificationBell from "../components/NotificationBell";
+import MyRoom from "../components/MyRoom";
 import { getUser } from "../api";
 import { useBelongings } from "../context/BelongingsContext";
 import loginBg from "../assets/college.jpeg";
@@ -66,6 +67,7 @@ export default function StudentDashboard() {
           </header>
 
           <main className="px-4 py-5 sm:px-8 sm:py-6">
+            <MyRoom />
             <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
               {stats.map(({ label, value, icon: Icon }) => (
                 <div

@@ -28,6 +28,7 @@ router.param("id", (req, res, next, v) =>
 router.post("/auth/login", rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, message: { error: "Too many login attempts, try again later" } }), auth.login);
 router.post("/auth/register", rateLimit({ windowMs: 60 * 60 * 1000, limit: 10, message: { error: "Too many sign-ups from this network, try again later" } }), auth.register);
 router.get("/auth/hostels", auth.hostels);
+router.get("/auth/departments", auth.departments);
 
 // ---- Everything below needs a valid token ----
 router.use(authenticate);
@@ -54,6 +55,9 @@ router.put("/locations/:id", admin, lookup.updateLocation);
 router.get("/hostels", lookup.listHostels);
 router.post("/hostels", admin, lookup.createHostel);
 router.put("/hostels/:id", admin, lookup.updateHostel);
+router.get("/departments", lookup.listDepartments);
+router.post("/departments", admin, lookup.createDepartment);
+router.put("/departments/:id", admin, lookup.updateDepartment);
 router.get("/semesters", lookup.listSemesters);
 router.post("/semesters", admin, lookup.createSemester);
 router.put("/semesters/:id", admin, lookup.updateSemester);

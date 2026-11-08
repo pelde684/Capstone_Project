@@ -17,14 +17,12 @@ const ALREADY_APPLIED_IF_TABLE_EXISTS = {
 };
 
 async function main() {
-  const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
+  const { DB_NAME } = process.env;
   if (!DB_NAME) throw new Error("DB_NAME is missing from .env");
 
+  const { timezone: _tz, ...options } = require("../src/config/dbOptions");
   const conn = await mysql.createConnection({
-    host: DB_HOST || "localhost",
-    port: Number(DB_PORT) || 3306,
-    user: DB_USER,
-    password: DB_PASSWORD,
+    ...options, // host, port, user, password, and SSL for an online database
     multipleStatements: true, // each migration file holds several SQL statements
   });
 

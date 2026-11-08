@@ -7,6 +7,9 @@ const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
+// Behind a hosting proxy (Render, Railway, ...) set TRUST_PROXY=1 so the login rate limit sees each user's real address
+if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY) || 1);
+
 // CSP allows Cloudinary photos (res.cloudinary.com) and data: URLs (QR images)
 app.use(helmet({
   contentSecurityPolicy: { directives: { ...helmet.contentSecurityPolicy.getDefaultDirectives(), "img-src": ["'self'", "data:", "https://res.cloudinary.com"] } },

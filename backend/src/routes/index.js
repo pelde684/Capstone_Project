@@ -26,6 +26,8 @@ router.param("id", (req, res, next, v) =>
 
 // ---- Public ----
 router.post("/auth/login", rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, message: { error: "Too many login attempts, try again later" } }), auth.login);
+router.post("/auth/register", rateLimit({ windowMs: 60 * 60 * 1000, limit: 10, message: { error: "Too many sign-ups from this network, try again later" } }), auth.register);
+router.get("/auth/hostels", auth.hostels);
 
 // ---- Everything below needs a valid token ----
 router.use(authenticate);

@@ -1,5 +1,5 @@
-
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Briefcase } from 'lucide-react'
 
 export default function Login({ onLogin }) {
@@ -78,6 +78,10 @@ export default function Login({ onLogin }) {
           <button className="btn" type="submit" disabled={busy}>
             {busy ? 'Logging in…' : 'Log in'}
           </button>
+
+          <div className="muted" style={{ fontSize: 14 }}>
+            Need an account? <Link to="/request-access">Request access</Link>
+          </div>
 
           <div className="muted" style={{ fontSize: 14 }}>
             Students log in on the student site.

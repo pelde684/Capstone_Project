@@ -1,56 +1,43 @@
-import { Bell, UserCircle } from "lucide-react";
+import { Bell, UserCircle, ChevronDown } from "lucide-react";
 
-function Navbar({ title, role = "Operator" }) {
+function Navbar({ title, name = "Operator One", role = "Operator" }) {
   return (
-    <header className="h-20 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-8">
-
+    <header className="flex h-[90px] items-center justify-between border-b border-white/10 bg-[rgba(12,18,32,0.82)] px-10 backdrop-blur-xl">
       {/* LEFT SIDE */}
       <div>
-        <h2 className="text-2xl font-bold text-white">
-          {title}
-        </h2>
-
-        <p className="text-sm text-slate-300">
+        <h2 className="text-2xl font-semibold text-white">{title}</h2>
+        <p className="mt-0.5 text-[15px] text-slate-400">
           QR Luggage Room Management System
         </p>
       </div>
 
       {/* RIGHT SIDE */}
-      <div className="flex items-center gap-6">
-
+      <div className="flex items-center gap-5">
         {/* NOTIFICATION */}
         <button
-          className="relative text-slate-300 hover:text-white transition"
+          type="button"
+          aria-label="Notifications"
+          className="text-slate-300 transition hover:text-white"
         >
           <Bell size={22} />
-
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-            3
-          </span>
         </button>
 
         {/* PROFILE */}
         <div className="flex items-center gap-3">
-
-          <UserCircle
-            size={38}
-            className="text-blue-500"
-          />
+          <UserCircle size={40} strokeWidth={1.5} className="text-slate-300" />
 
           <div>
-            <p className="font-semibold text-sm text-white">
-              {role}
+            <p className="text-[15px] font-semibold leading-tight text-white">
+              {name}
             </p>
-
-            <p className="text-xs text-slate-400">
-              CST Luggage Room
+            <p className="text-[13px] text-slate-400">
+              {role}, CST Luggage Room
             </p>
           </div>
 
+          <ChevronDown size={18} className="text-slate-400" />
         </div>
-
       </div>
-
     </header>
   );
 }

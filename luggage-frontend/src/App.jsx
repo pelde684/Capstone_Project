@@ -4,6 +4,7 @@ import { Briefcase, LayoutDashboard, QrCode, ShieldCheck, HandHelping, Users, Ba
 import { api, apiAll, getToken, saveToken, clearToken } from './api'
 import { buildItems, buildPeople } from './adapt'
 import Login from './pages/Login'
+import RequestAccess from './pages/RequestAccess'
 import OperatorDashboard from './pages/OperatorDashboard'
 import Scan from './pages/Scan'
 import Verify from './pages/Verify'
@@ -181,6 +182,7 @@ export default function App() {
     <div className="bg" />
     <Routes>
       <Route path="/" element={booting ? null : user ? <Navigate to={user.role === 'Admin' ? '/admin' : '/operator'} /> : <Login onLogin={login} />} />
+      <Route path="/request-access" element={booting ? null : user ? <Navigate to={user.role === 'Admin' ? '/admin' : '/operator'} /> : <RequestAccess />} />
       <Route path="/operator" element={op('Operator Dashboard', 'QR Luggage Room Management System', <OperatorDashboard items={items} />)} />
       <Route path="/operator/scan" element={op('Scan QR', 'Scan a student’s QR code to open their items', <Scan items={items} />)} />
       <Route path="/operator/verify" element={op('Verification', 'Check each item before it is stored', <Verify items={items} locations={locations} actions={actions} />)} />

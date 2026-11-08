@@ -1,0 +1,44 @@
+.od { display: grid; gap: 24px; color: var(--tx, #f3f6fb); }
+.od svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+.od-card {
+  background: rgba(20, 26, 40, 0.72);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.light .od-card, [data-theme="light"] .od-card {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.od-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.od-stat { padding: 24px 26px; display: flex; justify-content: space-between; }
+.od-stat span { color: #a9b4c6; font-size: 15px; }
+.od-stat strong { display: block; font-size: 30px; font-weight: 600; margin-top: 10px; }
+.od-stat > svg { color: #5b9bff; width: 28px; height: 28px; }
+
+.od-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.od-act { padding: 34px 36px; min-height: 245px; text-decoration: none; color: inherit; display: block; }
+.od-short { min-height: 200px; }
+.od-pri { background: linear-gradient(135deg, #2b78ff, #1659f5); border: 0; color: #fff; }
+
+.od-ic { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 22px; }
+.od-pri .od-ic { background: none; width: auto; height: auto; margin-bottom: 26px; }
+.od-pri .od-ic svg { width: 36px; height: 36px; }
+.od-g .od-ic { background: rgba(40, 190, 120, 0.18); color: #35d08b; }
+.od-y .od-ic { background: rgba(230, 170, 40, 0.2); color: #e9b43a; }
+.od-b .od-ic { background: rgba(42, 107, 255, 0.2); color: #5b9bff; }
+
+.od-act h2 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+.od-act p { color: #a9b4c6; font-size: 16px; margin: 0; }
+.od-pri p { color: #e6efff; }
+.od-act em { display: inline-flex; gap: 8px; align-items: center; margin-top: 22px; font-style: normal; font-weight: 600; color: #5b9bff; }
+.od-pri em { color: #fff; }
+.od-act em svg { width: 16px; height: 16px; }
+
+@media (max-width: 1000px) {
+  .od-stats { grid-template-columns: 1fr 1fr; }
+  .od-two { grid-template-columns: 1fr; }
+}

@@ -37,6 +37,47 @@ CREATE TABLE IF NOT EXISTS users (
   CONSTRAINT fk_users_hostel FOREIGN KEY (hostel_id) REFERENCES hostels(hostel_id)
 );
 
+-- Operator shift reports.
+-- Source: 006_shift_reports.sql
+
+CREATE TABLE IF NOT EXISTS shift_reports (
+    shift_report_id INT AUTO_INCREMENT PRIMARY KEY,
+    operator_id INT NOT NULL,
+    shift_date DATE NOT NULL,
+
+    shift ENUM(
+        'WHOLE_DAY',
+        'MORNING',
+        'AFTERNOON'
+    ) NOT NULL,
+
+    deposited INT NOT NULL DEFAULT 0,
+    stored_count INT NOT NULL DEFAULT 0,
+    handed_back INT NOT NULL DEFAULT 0,
+    rejected INT NOT NULL DEFAULT 0,
+    total_actions INT NOT NULL DEFAULT 0,
+    items_in_storage INT NOT NULL DEFAULT 0,
+    items_waiting INT NOT NULL DEFAULT 0,
+
+    notes TEXT NULL,
+
+    submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uq_shift_report (
+        operator_id,
+        shift_date,
+        shift
+    ),
+
+    INDEX idx_shift_reports_date (shift_date),
+
+    CONSTRAINT fk_shift_reports_operator
+        FOREIGN KEY (operator_id)
+        REFERENCES users(user_id)
+);
+
 CREATE TABLE IF NOT EXISTS categories (
   category_id   INT AUTO_INCREMENT PRIMARY KEY,
   category_name VARCHAR(100) NOT NULL UNIQUE,
@@ -51,6 +92,30 @@ CREATE TABLE IF NOT EXISTS storage_locations (
   capacity      INT,
   is_active     TINYINT(1) NOT NULL DEFAULT 1,
   created_at    TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Individual shelves inside storage locations.
+-- Source: 008_create_shelves.sql
+
+CREATE TABLE IF NOT EXISTS shelves (
+    shelf_id INT AUTO_INCREMENT PRIMARY KEY,
+    location_id INT NOT NULL,
+    shelf_name VARCHAR(100) NOT NULL,
+    capacity INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uq_shelf_location_name (
+        location_id,
+        shelf_name
+    ),
+
+    CONSTRAINT fk_shelves_location
+        FOREIGN KEY (location_id)
+        REFERENCES storage_locations(location_id),
+
+    CONSTRAINT chk_shelf_capacity
+        CHECK (capacity >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS semesters (
@@ -91,6 +156,30 @@ CREATE TABLE IF NOT EXISTS items (
   CONSTRAINT fk_items_category FOREIGN KEY (category_id) REFERENCES categories(category_id),
   CONSTRAINT fk_items_location FOREIGN KEY (location_id) REFERENCES storage_locations(location_id),
   CONSTRAINT fk_items_drop_off FOREIGN KEY (drop_off_id) REFERENCES drop_offs(drop_off_id)
+);
+
+-- Item photographs.
+-- Source: 007_item_photos.sql
+
+CREATE TABLE IF NOT EXISTS item_photos (
+    photo_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id INT NOT NULL,
+    public_id VARCHAR(500) NOT NULL,
+    position TINYINT NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uq_item_photo_position (
+        item_id,
+        position
+    ),
+
+    CONSTRAINT chk_item_photo_position
+        CHECK (position BETWEEN 1 AND 4),
+
+    CONSTRAINT fk_item_photos_item
+        FOREIGN KEY (item_id)
+        REFERENCES items(item_id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS qr_codes (

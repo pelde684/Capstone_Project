@@ -11,6 +11,6 @@ CREATE TABLE IF NOT EXISTS departments (
   CONSTRAINT fk_departments_location FOREIGN KEY (location_id) REFERENCES storage_locations(location_id)
 );
 
-ALTER TABLE users
-  ADD COLUMN department_id INT NULL AFTER hostel_id,
-  ADD CONSTRAINT fk_users_department FOREIGN KEY (department_id) REFERENCES departments(department_id);
+-- (Column and foreign key are added in two steps: TiDB Cloud cannot do both in one ALTER TABLE.)
+ALTER TABLE users ADD COLUMN department_id INT NULL AFTER hostel_id;
+ALTER TABLE users ADD CONSTRAINT fk_users_department FOREIGN KEY (department_id) REFERENCES departments(department_id);

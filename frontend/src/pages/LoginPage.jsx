@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Briefcase, User, Lock, ArrowRight } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
-import { api, saveSession } from "../api";
+import { api, saveSession, sendStaffToStaffSite } from "../api";
 import { useBelongings } from "../context/BelongingsContext";
 import loginBg from "../assets/college.jpeg";
 
@@ -19,14 +19,12 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      // the backend accepts the student ID (or email) as `identifier`
+      // One login page for everyone: the backend accepts a student ID or an email as `identifier`
       const { token, user } = await api("/auth/login", {
         method: "POST",
         body: { identifier: studentId.trim(), password },
       });
-      if (user.role !== "Student") {
-        throw new Error("This page is for students. Operators and admins use their own pages.");
-      }
+      if (sendStaffToStaffSite(token, user)) return; // operators and admins continue on the staff site
       saveSession(token, user);
       await reload();
       navigate("/dashboard");
@@ -67,14 +65,15 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-body">Student ID</label>
+              <label className="mb-1 block text-sm font-medium text-body">Student ID or email</label>
               <div className="flex items-center gap-2 rounded-xl border border-line bg-field px-3 py-3">
                 <User className="h-4 w-4 text-accent" />
                 <input
                   type="text"
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
-                  placeholder="02250123"
+                  placeholder="02250123 or name@college.edu"
+                  autoComplete="username"
                   required
                   className="w-full bg-transparent text-sm text-heading outline-none placeholder:text-muted"
                 />
@@ -90,6 +89,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   required
                   className="w-full bg-transparent text-sm text-heading outline-none placeholder:text-muted"
                 />
@@ -111,8 +111,12 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-5 text-xs text-muted">
-            Use your Student ID and the password given to you by the administrator.
+          <p className="mt-5 text-center text-sm text-body">
+            Students log in with their Student ID, operators and admins with their email.
+          </p>
+          <p className="mt-2 text-center text-sm text-body">
+            No account yet?{" "}
+            <Link to="/signup" className="font-semibold text-accent hover:underline">Register</Link>
           </p>
         </div>
       </div>

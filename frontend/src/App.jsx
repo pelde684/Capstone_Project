@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
 import StudentDashboard from "./pages/StudentDashboard";
 import RegisterItem from "./pages/RegisterItem";
 import MyBelongings from "./pages/MyBelongings";
@@ -15,6 +16,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
       <Route path="/dashboard" element={<RequireAuth><StudentDashboard /></RequireAuth>} />
       <Route path="/register" element={<RequireAuth><RegisterItem /></RequireAuth>} />
       <Route path="/belongings" element={<RequireAuth><MyBelongings /></RequireAuth>} />

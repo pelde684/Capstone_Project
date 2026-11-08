@@ -3,6 +3,15 @@ const API = import.meta.env?.VITE_API_URL || "/api";
 const TOKEN_KEY = "token";
 const USER_KEY = "luggage-room-user";
 
+// This site holds the one login/register page for everyone. Operators and admins are sent on to the
+// staff site, already logged in (the token travels after # so it is never sent to a server).
+export const STAFF_URL = import.meta.env?.VITE_STAFF_URL || "http://localhost:5174";
+export function sendStaffToStaffSite(token, user) {
+  if (user.role === "Student") return false;
+  window.location.assign(`${STAFF_URL}/#sso=${encodeURIComponent(token)}`);
+  return true;
+}
+
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 
 export function getUser() {
@@ -42,7 +51,7 @@ export async function api(path, { method = "GET", body, form } = {}) {
   }
 
   const data = await res.json().catch(() => ({}));
-  if (res.status === 401 && token && !path.startsWith("/auth/login")) {
+  if (res.status === 401 && token && !path.startsWith("/auth/login") && !path.startsWith("/auth/register")) {
     clearSession(); // token expired (they last 8 hours) -> back to the login page
     window.location.assign("/");
     throw new Error("Your session has expired. Please log in again.");

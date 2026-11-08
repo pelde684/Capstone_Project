@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Routes, Route, Navigate, NavLink, Link, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, NavLink, Link } from 'react-router-dom'
 import { Briefcase, LayoutDashboard, QrCode, ShieldCheck, HandHelping, Users, BarChart3, FileText, MessageSquare, LogOut, Sun, Moon, Bell, UserCircle2, ChevronDown } from 'lucide-react'
-import { api, apiAll, getToken, saveToken, clearToken } from './api'
+import { api, apiAll, getToken, clearToken, LOGIN_URL } from './api'
 import { buildItems, buildPeople } from './adapt'
-import Login from './pages/Login'
 import OperatorDashboard from './pages/OperatorDashboard'
 import Scan from './pages/Scan'
 import Verify from './pages/Verify'
@@ -83,6 +82,12 @@ function Shell({ user, pending, dark, setDark, onLogout, title, sub, children })
   )
 }
 
+// Not logged in: go to the shared login page (the same one students use)
+function GoToLogin() {
+  useEffect(() => { window.location.replace(LOGIN_URL) }, [])
+  return <p style={{ padding: 24 }}>Opening the login page… <a href={LOGIN_URL}>Click here if nothing happens</a>.</p>
+}
+
 export default function App() {
   const [user, setUser] = useState(null)
   const [booting, setBooting] = useState(() => !!getToken()) // checking a saved login
@@ -91,7 +96,6 @@ export default function App() {
   const [loadErr, setLoadErr] = useState('')
   const [dark, setDark] = useState(savedDark)
   const [toast, setToast] = useState('')
-  const nav = useNavigate()
   useEffect(() => {
     document.documentElement.classList.toggle('light', !dark)
     try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light') } catch { /* not remembered, still works */ }
@@ -134,16 +138,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const login = async (identifier, password) => {
-    const r = await api('/auth/login', { method: 'POST', body: { identifier, password } })
-    if (r.user.role === 'Student') throw new Error('Students log in on the student site.')
-    saveToken(r.token)
-    setUser(r.user)
-    setLoaded(false)
-    reload(r.user)
-    nav(r.user.role === 'Admin' ? '/admin' : '/operator')
-  }
-  const logout = () => { clearToken(); setUser(null); setData({ items: [], students: [], staff: [], locations: [] }); setLoaded(false); nav('/') }
+  // Logging in and out happens on the shared login page (student site)
+  const logout = () => { clearToken(); window.location.assign(LOGIN_URL) }
 
   // Operator actions. Each one records a transaction in the backend, then reloads.
   const run = async (steps, msg) => {
@@ -188,7 +184,7 @@ export default function App() {
   return (<>
     <div className="bg" />
     <Routes>
-      <Route path="/" element={booting ? null : user ? <Navigate to={user.role === 'Admin' ? '/admin' : '/operator'} /> : <Login onLogin={login} />} />
+      <Route path="/" element={booting ? null : user ? <Navigate to={user.role === 'Admin' ? '/admin' : '/operator'} /> : <GoToLogin />} />
       <Route path="/operator" element={op('Operator Dashboard', 'QR Luggage Room Management System', <OperatorDashboard items={items} />)} />
       <Route path="/operator/scan" element={op('Scan QR', 'Scan a student’s QR code to open their items', <Scan items={items} />)} />
       <Route path="/operator/verify" element={op('Verification', 'Check each item before it is stored', <Verify items={items} locations={locations} actions={actions} />)} />

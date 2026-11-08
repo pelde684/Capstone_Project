@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell,
   UserCircle2,
   ChevronDown,
   MessageSquare,
@@ -10,6 +9,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import NotificationBell from "../components/NotificationBell";
 import { api, getUser } from "../api";
 import loginBg from "../assets/college.jpeg";
 
@@ -99,12 +99,7 @@ export default function FeedbackPage() {
               <p className="text-xs text-body sm:text-sm">Tell us what's wrong or how we can improve</p>
             </div>
             <div className="flex items-center gap-5">
-              <button className="relative text-body hover:text-heading">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white">
-                  1
-                </span>
-              </button>
+              <NotificationBell />
               <div className="flex items-center gap-2">
                 <UserCircle2 className="h-8 w-8 text-accent" />
                 <div className="leading-tight">

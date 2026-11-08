@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   ClipboardList,
   Boxes,
-  Bell,
   UserCircle2,
   Clock,
   CheckCircle2,
@@ -14,6 +13,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import NotificationBell from "../components/NotificationBell";
 import { getUser } from "../api";
 import { useBelongings } from "../context/BelongingsContext";
 import loginBg from "../assets/college.jpeg";
@@ -53,9 +53,7 @@ export default function StudentDashboard() {
               <p className="text-xs text-body sm:text-sm">QR Luggage Room Management System</p>
             </div>
             <div className="flex items-center gap-5">
-              <button className="relative text-body hover:text-heading">
-                <Bell className="h-5 w-5" />
-              </button>
+              <NotificationBell />
               <div className="flex items-center gap-2">
                 <UserCircle2 className="h-8 w-8 text-accent" />
                 <div className="leading-tight">

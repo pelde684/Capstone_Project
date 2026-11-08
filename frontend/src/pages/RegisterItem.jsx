@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import {
-  Bell,
   UserCircle2,
   ChevronDown,
   Upload,
@@ -16,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import NotificationBell from "../components/NotificationBell";
 import { api, buildDropOffForm, getUser } from "../api";
 import { useBelongings } from "../context/BelongingsContext";
 import { shortCode } from "../utils/belongings";
@@ -204,9 +204,7 @@ export default function RegisterItem() {
               <p className="text-xs text-body sm:text-sm">Add one or more belongings for storage</p>
             </div>
             <div className="flex items-center gap-5">
-              <button className="relative text-body hover:text-heading">
-                <Bell className="h-5 w-5" />
-              </button>
+              <NotificationBell />
               <div className="flex items-center gap-2">
                 <UserCircle2 className="h-8 w-8 text-accent" />
                 <div className="leading-tight">

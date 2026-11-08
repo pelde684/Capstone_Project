@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Html5Qrcode } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import Ticket from './Ticket'
 import { api } from '../api'
 import { shortCode } from '../adapt'
@@ -46,15 +46,26 @@ export default function Scan({ items }) {
     setLive(false)
   }
 
+  // QR codes only, and the phone's own fast QR reader when the browser has one (Android Chrome does)
+  const makeScanner = () => new Html5Qrcode('reader', {
+    formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+    verbose: false,
+  })
+
   const start = async () => {
     setErr('')
     try {
-      scanner.current = new Html5Qrcode('reader')
+      scanner.current = makeScanner()
       running.current = true
       setLive(true)
       await scanner.current.start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
+        {
+          fps: 15,
+          // scan area = 75% of the camera picture, so the tag does not have to be held exactly in a small box
+          qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.75); return { width: s, height: s } },
+        },
         (text) => { lookup(text); stop() },
         () => {}
       )
@@ -66,6 +77,24 @@ export default function Scan({ items }) {
   }
 
   useEffect(() => () => { if (running.current) scanner.current?.stop().catch(() => {}) }, [])
+
+  // Fallback: take a photo of the tag with the phone camera and read the QR from the photo.
+  // Works even when the live camera is blocked (e.g. the site is opened over plain http).
+  const fromPhoto = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setErr('')
+    await stop()
+    try {
+      const reader = makeScanner()
+      const text = await reader.scanFile(file, false)
+      reader.clear()
+      lookup(text)
+    } catch {
+      setErr('No QR code found in that photo. Hold the phone closer so the QR fills most of the picture, with no glare, and try again.')
+    }
+  }
 
   const actionFor = (hit) => hit.status === 'Pending' || hit.status === 'Rejected' ? ['Open verification', `/operator/verify?code=${hit.id}`]
     : hit.status === 'Stored' ? ['Start handover', `/operator/handover?code=${hit.id}`] : null
@@ -79,9 +108,16 @@ export default function Scan({ items }) {
           {!live && <div className="idle"><b>Camera is off</b><p>Press start, then hold the tag in front of the camera.</p></div>}
           <i /><i /><i /><i />
         </div>
-        <div className="row" style={{ justifyContent: 'center' }}>
+        <div className="row" style={{ justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
           {live ? <button className="btn ghost" onClick={stop}>Stop camera</button> : <button className="btn" onClick={start}>Start camera</button>}
+          <label className="btn ghost" style={{ cursor: 'pointer' }}>
+            Scan from a photo
+            <input type="file" accept="image/*" capture="environment" onChange={fromPhoto} style={{ display: 'none' }} />
+          </label>
         </div>
+        <p className="muted" style={{ textAlign: 'center', fontSize: 13, margin: '10px 0 0' }}>
+          Hold the tag 15–25 cm away so the QR fills most of the box. A printed label scans better than a screen.
+        </p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>

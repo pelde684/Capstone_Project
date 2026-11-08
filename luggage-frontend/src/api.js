@@ -4,7 +4,8 @@ const TOKEN_KEY = 'staff-token'
 
 // Everyone logs in on one shared page (on the student site). Operators and admins are sent here
 // with #sso=<token> in the address; it is saved and removed from the address before the app starts.
-export const LOGIN_URL = import.meta.env?.VITE_LOGIN_URL || 'http://localhost:5173'
+// Same computer/address as this page, port 5173 - so it also works from a phone on the same Wi-Fi
+export const LOGIN_URL = import.meta.env?.VITE_LOGIN_URL || `${window.location.protocol}//${window.location.hostname}:5173`
 try {
   const m = window.location.hash.match(/[#&]sso=([^&]+)/)
   if (m) {

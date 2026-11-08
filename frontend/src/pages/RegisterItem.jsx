@@ -141,7 +141,7 @@ export default function RegisterItem() {
   // One label per item (every bag gets the same QR), 6 labels on an A4 sheet.
   // Each sheet is saved as a PNG ready to print; 7+ items give a second sheet.
   const handleDownload = () => {
-    const qr = document.getElementById("batch-qr-canvas");
+    const qr = document.getElementById("batch-qr-print"); // drawn at full label size, so the squares stay sharp
     const code = shortCode(registered.qrValue);
     const items = registered.items;
     const W = 1240, H = 1754, M = 60, GAP = 30, COLS = 2, ROWS = 3, PER = COLS * ROWS; // A4 at 150 dpi
@@ -403,6 +403,8 @@ export default function RegisterItem() {
 
                 <div className="mt-6 flex justify-center rounded-xl bg-white p-6">
                   <QRCodeCanvas id="batch-qr-canvas" value={registered.qrValue} size={180} />
+                  {/* same QR at the exact size used on the printed labels (not shown) */}
+                  <QRCodeCanvas id="batch-qr-print" value={registered.qrValue} size={300} level="M" style={{ display: "none" }} />
                 </div>
                 <p className="mt-2 text-xs text-muted">{shortCode(registered.qrValue)}</p>
 

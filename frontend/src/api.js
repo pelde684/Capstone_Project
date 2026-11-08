@@ -5,7 +5,8 @@ const USER_KEY = "luggage-room-user";
 
 // This site holds the one login/register page for everyone. Operators and admins are sent on to the
 // staff site, already logged in (the token travels after # so it is never sent to a server).
-export const STAFF_URL = import.meta.env?.VITE_STAFF_URL || "http://localhost:5174";
+// Same computer/address as this page, port 5174 - so it also works from a phone on the same Wi-Fi (http://192.168.x.x:5173)
+export const STAFF_URL = import.meta.env?.VITE_STAFF_URL || `${window.location.protocol}//${window.location.hostname}:5174`;
 export function sendStaffToStaffSite(token, user) {
   if (user.role === "Student") return false;
   window.location.assign(`${STAFF_URL}/#sso=${encodeURIComponent(token)}`);

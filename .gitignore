@@ -1,0 +1,2 @@
+# Local https certificate for testing on a phone (npm run dev:phone) - never commit it
+certs/

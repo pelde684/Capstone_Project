@@ -1,2 +1,15 @@
-node_modules
+# Dependencies and build output
+node_modules/
+dist/
+
+# Environment files (secrets)
 .env
+.env.*
+!.env.example
+
+# Local https certificate for testing on a phone (npm run dev:phone) - never commit it
+certs/
+
+# Logs and OS files
+*.log
+.DS_Store

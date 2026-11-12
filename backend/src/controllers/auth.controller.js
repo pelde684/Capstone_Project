@@ -34,13 +34,15 @@ exports.login = asyncHandler(async (req, res) => {
 });
 
 // Self sign-up from the shared Register page. Logs the new user in straight away (same reply as login).
-// Body: { name, email, password, role: Student|Operator|Admin, studentId? (students), hostelId?, departmentId?, staffCode? }
+// Body: { name, email, password, role: Student|Operator|Admin, studentId? (students), hostelId?, hostelRoomId?, departmentId?, staffCode? }
 // If STAFF_SIGNUP_CODE is set in .env, signing up as Operator or Admin needs that code - set it on the live site
 // so a stranger cannot make themselves an admin. Without it (local testing) anyone can pick any role.
 const sameText = (a, b) => {
   const x = Buffer.from(String(a)), y = Buffer.from(String(b));
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 };
+
+const given = (v) => v !== undefined && v !== null && v !== "";
 
 exports.register = asyncHandler(async (req, res) => {
   const body = req.body || {};
@@ -60,15 +62,25 @@ exports.register = asyncHandler(async (req, res) => {
     throw new HttpError(403, "A valid staff code is needed to sign up as an operator or admin");
 
   let hostelId = null;
-  if (role === "Student" && body.hostelId !== undefined && body.hostelId !== null && body.hostelId !== "") {
+  if (role === "Student" && given(body.hostelId)) {
     hostelId = Number(body.hostelId);
     const [[hostel]] = Number.isInteger(hostelId)
       ? await db.query("SELECT hostel_id FROM hostels WHERE hostel_id = ? AND is_active = 1", [hostelId]) : [[]];
     if (!hostel) throw new HttpError(400, "Choose a hostel from the list");
   }
 
+  // Room (or NK kitchen) inside the chosen hostel
+  let hostelRoomId = null;
+  if (role === "Student" && given(body.hostelRoomId)) {
+    if (!hostelId) throw new HttpError(400, "Choose a hostel before choosing a room");
+    hostelRoomId = Number(body.hostelRoomId);
+    const [[room]] = Number.isInteger(hostelRoomId)
+      ? await db.query("SELECT room_id FROM hostel_rooms WHERE room_id = ? AND hostel_id = ?", [hostelRoomId, hostelId]) : [[]];
+    if (!room) throw new HttpError(400, "Choose a room from the list for that hostel");
+  }
+
   let departmentId = null;
-  if (role === "Student" && body.departmentId !== undefined && body.departmentId !== null && body.departmentId !== "") {
+  if (role === "Student" && given(body.departmentId)) {
     departmentId = Number(body.departmentId);
     const [[dept]] = Number.isInteger(departmentId)
       ? await db.query("SELECT department_id FROM departments WHERE department_id = ? AND is_active = 1", [departmentId]) : [[]];
@@ -83,9 +95,9 @@ exports.register = asyncHandler(async (req, res) => {
   if (!roleRow) throw new HttpError(500, `Role "${role}" is missing from the roles table - run: npm run seed`);
 
   const [r] = await db.query(
-    `INSERT INTO users (role_id, student_id, full_name, email, password_hash, hostel_id, department_id, is_active, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,1,NOW(),NOW())`,
-    [roleRow.role_id, role === "Student" ? studentId : null, name, email, await bcrypt.hash(password, 10), hostelId, departmentId]);
+    `INSERT INTO users (role_id, student_id, full_name, email, password_hash, hostel_id, room_id, department_id, is_active, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,1,NOW(),NOW())`,
+    [roleRow.role_id, role === "Student" ? studentId : null, name, email, await bcrypt.hash(password, 10), hostelId, hostelRoomId, departmentId]);
 
   const user = { id: r.insertId, name, email, studentId: role === "Student" ? studentId : null, role };
   res.status(201).json({ token: signToken(user), user: publicUser(user) });
@@ -100,6 +112,16 @@ exports.departments = asyncHandler(async (req, res) => {
 // Active hostels for the Register page (public, names only)
 exports.hostels = asyncHandler(async (req, res) => {
   const [rows] = await db.query("SELECT hostel_id AS id, hostel_name AS name FROM hostels WHERE is_active = 1 ORDER BY hostel_name");
+  res.json({ data: rows });
+});
+
+// Rooms (and NK kitchens) of one hostel for the Register page (public)
+exports.hostelRooms = asyncHandler(async (req, res) => {
+  const hostelId = Number(req.params.hostelId);
+  if (!Number.isInteger(hostelId)) throw new HttpError(400, "Invalid hostel");
+  const [rows] = await db.query(
+    `SELECT room_id AS id, room_no AS roomNo, room_type AS type
+       FROM hostel_rooms WHERE hostel_id = ? ORDER BY room_type, CAST(room_no AS UNSIGNED)`, [hostelId]);
   res.json({ data: rows });
 });
 

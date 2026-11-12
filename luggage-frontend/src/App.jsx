@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, NavLink, Link } from 'react-router-dom'
 import { Briefcase, LayoutDashboard, QrCode, ShieldCheck, HandHelping, Users, BarChart3, FileText, MessageSquare, LogOut, Sun, Moon, Bell, UserCircle2, ChevronDown, Package } from 'lucide-react'
 import { api, apiAll, getToken, clearToken, LOGIN_URL } from './api'
 import { buildItems, buildPeople } from './adapt'
+import StaffBanner from './components/StaffBanner'
+import StaffFooter from './components/StaffFooter'
 import OperatorDashboard from './pages/OperatorDashboard'
 import Scan from './pages/Scan'
 import Verify from './pages/Verify'
@@ -50,6 +52,7 @@ function Shell({ user, pending, dark, setDark, onLogout, title, sub, children })
   const [open, setOpen] = useState(false)
   const admin = user.role === 'Admin'
   const links = admin ? adminLinks : opLinks
+  const isDash = /dashboard/i.test(title) // dashboards keep their own welcome area
   return (
     <div className="shell">
       <aside className="side">
@@ -62,7 +65,7 @@ function Shell({ user, pending, dark, setDark, onLogout, title, sub, children })
         <ThemeToggle dark={dark} setDark={setDark} />
         <button className="nav plain" onClick={onLogout}><LogOut size={20} />Logout</button>
       </aside>
-      <div>
+      <div className="content">
         <header className="top">
           <div><h1>{title}</h1><p className="muted">{sub}</p></div>
           <div className="tools">
@@ -79,7 +82,11 @@ function Shell({ user, pending, dark, setDark, onLogout, title, sub, children })
             </div>
           </div>
         </header>
-        <main className="main">{children}</main>
+        <main className="main">
+          {!isDash && <StaffBanner user={user} pending={pending} />}
+          {children}
+        </main>
+        <StaffFooter role={user.role} />
       </div>
     </div>
   )
@@ -205,4 +212,3 @@ export default function App() {
     {toast && <div className="toast" role="status">{toast}</div>}
   </>)
 }
-

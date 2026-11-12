@@ -1,0 +1,100 @@
+/* Staff: campus photo background + glass panels (same look as the student site) */
+
+:root {
+  --bg: #0b1426;
+  --panel: rgba(16, 26, 46, .66);
+  --panel-b: rgba(255, 255, 255, .14);
+  --text: #f3f6fb;
+  --muted: #a9b6cb;
+  --blue: #2f7bff;
+  --blue-rgb: 47 123 255;
+  --link: #8bb8ff;
+  --input: rgba(255, 255, 255, .07);
+  --card2: rgba(255, 255, 255, .05);
+  --overlay: rgba(6, 12, 26, .58);
+}
+
+:root.light {
+  --bg: #eef2f8;
+  --panel: rgba(255, 255, 255, .74);
+  --panel-b: rgba(15, 23, 42, .13);
+  --text: #0f172a;
+  --muted: #55627a;
+  --blue: #2563eb;
+  --blue-rgb: 37 99 235;
+  --link: #1d4ed8;
+  --input: rgba(255, 255, 255, .8);
+  --card2: rgba(255, 255, 255, .55);
+  --overlay: rgba(255, 255, 255, .38);
+}
+
+/* the campus photo with a dark (or light) wash on top */
+.bg::before {
+  inset: -8px;
+  background-image:
+    linear-gradient(var(--overlay), var(--overlay)),
+    url("/college.jpeg");
+  background-size: cover;
+  background-position: center;
+  filter: blur(2px);
+  transform: scale(1.03);
+}
+
+/* frosted glass panels */
+.glass,
+.side,
+.top,
+.atop,
+.stat,
+.act,
+.acard,
+.vcard,
+.chartbox,
+.subnav,
+.menu {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.glass,
+.stat,
+.act,
+.acard,
+.vcard {
+  border-radius: 16px;
+}
+
+/* active menu item: bright blue, like the student sidebar */
+.nav.active,
+.light .nav.active {
+  background: var(--blue);
+  box-shadow: 0 6px 16px rgb(var(--blue-rgb) / .35);
+}
+
+/* dropdown lists stay readable */
+select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+:root:not(.light) select option {
+  background: #1a2540;
+  color: #ffffff;
+}
+
+/* banner and footer match the student site */
+.sbanner {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-radius: 16px;
+}
+
+.sfoot {
+  background: #2b5560;
+}
+
+.sf-logo,
+.av.big,
+.mem.lead .av,
+.totop {
+  color: #2b5560;
+}

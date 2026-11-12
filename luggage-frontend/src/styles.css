@@ -2881,3 +2881,66 @@ body,
   border-color: var(--blue);
   color: #fff;
 }
+
+
+/* ================= CST look: flat, white, thin lines, no blur ================= */
+
+.bg {
+  background-color: var(--bg);
+}
+
+.bg::before {
+  background-image: none;
+  filter: none;
+  transform: none;
+  inset: 0;
+}
+
+.glass {
+  border-radius: 8px;
+}
+
+/* Amber marks the active menu item, nothing else */
+.nav.active {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.nav.active,
+.btn.on {
+  color: #fff;
+}
+
+.light .btn.green,
+.light .btn.approved,
+.light .btn.red {
+  color: #fff;
+}
+
+.light .nav.active {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* The report on screen follows the theme and is flat, no glass */
+.paper {
+  --text: #f3f4f6;
+  --muted: #9ca3af;
+  --panel-b: rgba(255, 255, 255, .14);
+  background: #121a3f;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.light .paper {
+  --text: #0b1030;
+  --muted: #6b7280;
+  --panel-b: #e5e7eb;
+  background: #ffffff;
+  border-color: #e5e7eb;
+  box-shadow: none;
+}
+
+.light .paper .Stored { color: #1f5a6b; }
+.light .paper .Pending { color: #b45309; }
+.light .paper .Returned { color: #15803d; }
+.light .paper .Rejected { color: #b91c1c; }

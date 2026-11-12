@@ -44,7 +44,7 @@ function ThemeToggle({ dark, setDark }) {
 
 // Remembered in the browser under the same key as the student site
 const THEME_KEY = 'luggage-room-theme'
-const savedDark = () => { try { return localStorage.getItem(THEME_KEY) === 'dark' } catch { return false } }
+const savedDark = () => { try { return localStorage.getItem(THEME_KEY) !== 'light' } catch { return true } }
 
 function Shell({ user, pending, dark, setDark, onLogout, title, sub, children }) {
   const [open, setOpen] = useState(false)

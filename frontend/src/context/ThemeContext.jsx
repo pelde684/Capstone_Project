@@ -6,9 +6,9 @@ const STORAGE_KEY = "luggage-room-theme";
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
+      return localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
     } catch {
-      return "light";
+      return "dark";
     }
   });
 

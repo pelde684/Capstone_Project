@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Navigate, NavLink, Link } from 'react-router-dom'
-import { Briefcase, LayoutDashboard, QrCode, ShieldCheck, HandHelping, Users, BarChart3, FileText, MessageSquare, LogOut, Sun, Moon, Bell, UserCircle2, ChevronDown, Package } from 'lucide-react'
+import { LayoutDashboard, QrCode, ShieldCheck, HandHelping, Users, BarChart3, FileText, MessageSquare, LogOut, Sun, Moon, Bell, UserCircle2, ChevronDown, Package, Menu, X } from 'lucide-react'
 import { api, apiAll, getToken, clearToken, LOGIN_URL } from './api'
 import { buildItems, buildPeople } from './adapt'
+import Logo from './components/Logo'
 import StaffBanner from './components/StaffBanner'
 import StaffFooter from './components/StaffFooter'
 import OperatorDashboard from './pages/OperatorDashboard'
@@ -48,18 +49,48 @@ function ThemeToggle({ dark, setDark }) {
 const THEME_KEY = 'luggage-room-theme'
 const savedDark = () => { try { return localStorage.getItem(THEME_KEY) !== 'light' } catch { return true } }
 
+// Menu behaviour: on phones and small windows the menu slides in and can be closed;
+// on bigger screens the menu button hides or shows the side menu.
+const MENU_CSS = `
+.menubtn { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; margin-right: 12px; border-radius: 12px; border: 1px solid rgba(128, 150, 175, 0.35); background: transparent; color: inherit; cursor: pointer; }
+.menubtn:hover { background: rgba(128, 150, 175, 0.18); }
+.top-left { display: flex; align-items: center; min-width: 0; }
+.side-close { display: none; align-items: center; justify-content: center; width: 36px; height: 36px; margin-left: auto; border-radius: 10px; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.side-overlay { display: none; }
+.shell.collapsed > .side { display: none; }
+@media (max-width: 900px) {
+  .shell { display: block; }
+  .shell > .side, .shell.collapsed > .side { display: flex; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; width: 272px; max-width: 85vw; overflow-y: auto; background: rgba(15, 27, 45, 0.98); transform: translateX(-105%); transition: transform 0.25s ease; }
+  :root.light .shell > .side { background: rgba(255, 255, 255, 0.98); }
+  .shell > .side.open { transform: none; box-shadow: 0 0 40px rgba(0, 0, 0, 0.45); }
+  .side-close { display: inline-flex; }
+  .side-overlay { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(0, 0, 0, 0.5); }
+  .shell > .content { width: 100%; max-width: 100%; margin-left: 0; min-width: 0; }
+  .top h1 { font-size: 1.25rem; }
+  .top .muted { display: none; }
+  .userbtn > span { display: none; }
+}
+`
+
 function Shell({ user, pending, dark, setDark, onLogout, title, sub, children }) {
   const [open, setOpen] = useState(false)
+  const [drawer, setDrawer] = useState(false) // menu open on a small screen
+  const [collapsed, setCollapsed] = useState(false) // menu hidden on a big screen
+  const toggleMenu = () => (window.innerWidth <= 900 ? setDrawer(d => !d) : setCollapsed(c => !c))
   const admin = user.role === 'Admin'
   const links = admin ? adminLinks : opLinks
   const isDash = /dashboard/i.test(title) // dashboards keep their own welcome area
   return (
-    <div className="shell">
-      <aside className="side">
-        <div className="brand"><div className="logo"><Briefcase size={24} /></div><div><b>Luggage Room</b><small>Management System</small></div></div>
+    <div className={'shell' + (collapsed ? ' collapsed' : '')}>
+      <style>{MENU_CSS}</style>
+      {drawer && <div className="side-overlay" onClick={() => setDrawer(false)} />}
+      <aside className={'side' + (drawer ? ' open' : '')}>
+        <div className="brand"><Logo variant="mark" size={44} /><div><b>Luggage Room</b><small>Management System</small></div>
+          <button type="button" className="side-close" onClick={() => setDrawer(false)} aria-label="Close menu"><X size={20} /></button>
+        </div>
         <div className="role">{user.role.toUpperCase()}</div>
         <nav>{links.map(([to, label, Icon, end]) => (
-          <NavLink key={to} to={to} end={end} className={({ isActive }) => 'nav' + (isActive ? ' active' : '')}><Icon size={20} />{label}</NavLink>
+          <NavLink key={to} to={to} end={end} className={({ isActive }) => 'nav' + (isActive ? ' active' : '')} onClick={() => setDrawer(false)}><Icon size={20} />{label}</NavLink>
         ))}</nav>
         <div className="spacer" />
         <ThemeToggle dark={dark} setDark={setDark} />
@@ -67,7 +98,10 @@ function Shell({ user, pending, dark, setDark, onLogout, title, sub, children })
       </aside>
       <div className="content">
         <header className="top">
-          <div><h1>{title}</h1><p className="muted">{sub}</p></div>
+          <div className="top-left">
+            <button type="button" className="menubtn" onClick={toggleMenu} aria-label="Open or close menu" title="Menu"><Menu size={22} /></button>
+            <div><h1>{title}</h1><p className="muted">{sub}</p></div>
+          </div>
           <div className="tools">
             <Link to={admin ? '/admin/records' : '/operator/verify'} className="bell" aria-label={`${pending} items pending`}>
               <Bell size={22} />{pending > 0 && <span className="dot">{pending}</span>}

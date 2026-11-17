@@ -6,11 +6,11 @@ import {
   ClipboardList,
   MessageSquare,
   LogOut,
-  Briefcase,
   Menu,
   X,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import Logo from "../public/Logo";
 import { clearSession } from "../api";
 import { useBelongings } from "../context/BelongingsContext";
 
@@ -43,9 +43,7 @@ export default function Sidebar({ activePath }) {
       {/* Mobile top bar, only visible below the md breakpoint */}
       <div className="flex items-center justify-between border-b border-line bg-sidebar px-4 py-3 backdrop-blur-md md:hidden">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500">
-            <Briefcase className="h-4 w-4 text-white" />
-          </div>
+          <Logo variant="mark" size={32} />
           <p className="text-sm font-semibold text-heading">Luggage Room</p>
         </div>
         <div className="flex items-center gap-3">
@@ -97,9 +95,7 @@ function SidebarContent({ activePath, onNavigate, onLogout, onClose, showClose }
       <div>
         <div className="flex items-center justify-between px-5 py-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 shadow-sm">
-              <Briefcase className="h-5 w-5 text-white" />
-            </div>
+            <Logo variant="mark" size={44} />
             <div>
               <p className="text-sm font-semibold leading-tight text-heading">Luggage Room</p>
               <p className="text-xs leading-tight text-muted">Management System</p>

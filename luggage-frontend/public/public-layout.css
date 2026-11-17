@@ -1,0 +1,132 @@
+/* Header, welcome area and footer for the student site. All classes start with pl- */
+.pl {
+  --pl-bg: #ffffff;
+  --pl-text: #0b1030;
+  --pl-muted: #5b6472;
+  --pl-line: #e2e6ea;
+  --pl-card: #ffffff;
+  --pl-teal: #1f5a6b;
+  --pl-teal-dark: #174957;
+  --pl-amber: #f5a200;
+  --pl-footer: #245565;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--pl-bg);
+  color: var(--pl-text);
+  font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+}
+.dark .pl {
+  --pl-bg: #0d1a29;
+  --pl-text: #eef2f8;
+  --pl-muted: #a3b0c6;
+  --pl-line: rgba(255, 255, 255, 0.14);
+  --pl-card: #14263a;
+  --pl-footer: #143947;
+}
+
+/* Header */
+.pl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px clamp(16px, 5vw, 64px);
+  background: var(--pl-bg);
+  border-bottom: 1px solid var(--pl-line);
+}
+.pl-brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
+.pl-brand strong { display: block; font-size: 17px; }
+.pl-brand small { display: block; color: var(--pl-muted); font-size: 13px; }
+.pl-logo-box {
+  display: grid; place-items: center; width: 42px; height: 42px;
+  border-radius: 8px; background: var(--pl-teal); color: #fff; flex: none;
+}
+.pl-logo-light { background: #fff; color: var(--pl-teal); width: 54px; height: 54px; }
+.pl-nav { display: flex; align-items: center; gap: 12px; }
+.pl-link { color: inherit; text-decoration: none; font-weight: 600; padding: 8px 10px; border-radius: 6px; }
+.pl-link:hover { color: var(--pl-teal); }
+.dark .pl-link:hover { color: #8fd3e6; }
+.pl-btn {
+  background: var(--pl-teal); color: #fff; text-decoration: none; font-weight: 700;
+  padding: 10px 18px; border-radius: 6px; border: 1px solid var(--pl-teal);
+}
+.pl-btn:hover { background: var(--pl-teal-dark); }
+.pl a:focus-visible, .pl button:focus-visible { outline: 3px solid var(--pl-amber); outline-offset: 2px; }
+
+/* Welcome area: banner on top, card directly underneath, same width */
+.pl-hero {
+  position: relative; flex: 1;
+  display: flex; justify-content: center; align-items: flex-start;
+  padding: clamp(24px, 5vw, 56px) 16px;
+  background-color: var(--pl-bg); background-size: cover; background-position: center;
+}
+.pl-hero-tint { position: absolute; inset: 0; background: rgba(31, 90, 107, 0.55); }
+.pl:not(:has(.pl-hero[style])) .pl-hero-tint { background: transparent; }
+.pl-stack {
+  position: relative; width: 100%; max-width: 480px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.pl-banner { display: block; width: 100%; height: auto; border-radius: 8px; }
+.pl-logo-full { display: flex; justify-content: center; padding: 0 8px; }
+/* Footer: watercolour painting of the campus, with a light wash so the text stays readable */
+.pl-footer {
+  --f-text: #0b1030;
+  --f-muted: #3b4456;
+  --f-icon: #1f5a6b;
+  --f-line: rgba(11, 16, 48, 0.14);
+  --f-wash: rgba(255, 255, 255, 0.7);
+  --f-bar: rgba(255, 255, 255, 0.55);
+  background-color: #f4f6f8;
+  background-image: linear-gradient(var(--f-wash), var(--f-wash)), url("./cst-paint.jpeg");
+  background-size: cover;
+  background-position: center bottom;
+  color: var(--f-text);
+}
+.dark .pl-footer {
+  --f-text: #eef2f8;
+  --f-muted: #b9c6d3;
+  --f-icon: #f5a200;
+  --f-line: rgba(255, 255, 255, 0.18);
+  --f-wash: rgba(13, 26, 41, 0.86);
+  --f-bar: rgba(13, 26, 41, 0.55);
+  background-color: #0d1a29;
+}
+.pl-footer-grid {
+  display: grid; grid-template-columns: 1.4fr 1fr 1.2fr; gap: 32px;
+  padding: 40px clamp(16px, 5vw, 64px);
+}
+.pl-footer-logo { display: flex; align-items: center; gap: 14px; }
+.pl-footer-logo strong { display: block; font-size: 18px; color: var(--f-text); }
+.pl-footer-logo small { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--f-muted); }
+.pl-footer-brand p { margin: 16px 0 0; max-width: 38ch; line-height: 1.5; color: var(--f-text); }
+.pl-footer h2 { margin: 0 0 14px; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--f-muted); }
+.pl-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.pl-footer a { color: inherit; text-decoration: none; }
+.pl-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pl-contact li { display: flex; align-items: center; gap: 10px; }
+.pl-contact svg { color: var(--f-icon); flex: none; }
+.pl-footer-bar {
+  padding: 14px clamp(16px, 5vw, 64px); font-size: 13px; color: var(--f-muted);
+  background: var(--f-bar); border-top: 1px solid var(--f-line);
+}
+
+.pl-brand strong, .pl-brand small, .pl-link, .pl-btn { white-space: nowrap; }
+.pl-theme-compact { display: none; }
+
+@media (max-width: 760px) {
+  .pl-footer-grid { grid-template-columns: 1fr; gap: 28px; }
+  .pl-brand small { display: none; }
+  .pl-nav { gap: 6px; }
+  .pl-link { padding: 8px 6px; }
+  .pl-btn { padding: 9px 14px; }
+}
+@media (max-width: 560px) {
+  .pl-brand > span:last-child { display: none; } /* logo only on small phones */
+  .pl-theme-full { display: none; }
+  .pl-theme-compact { display: inline-flex; }
+}
+@media (prefers-reduced-motion: reduce) { .pl * { transition: none !important; } }
+
+/* The footer is also used on logged-in pages, outside the .pl wrapper, so it carries its own colours */
+.pl-footer a:focus-visible { outline: 3px solid var(--f-icon); outline-offset: 2px; }

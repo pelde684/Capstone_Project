@@ -5,11 +5,19 @@ import StudentDashboard from "./pages/StudentDashboard";
 import RegisterItem from "./pages/RegisterItem";
 import MyBelongings from "./pages/MyBelongings";
 import FeedbackPage from "./pages/FeedbackPage";
+import Footer from "./public/Footer";
 import { getToken } from "./api";
 
-// Pages after login need a saved token, otherwise go back to the login page
+// Pages after login need a saved token, otherwise go back to the login page.
+// The footer is added here once, so every logged-in page gets it.
 function RequireAuth({ children }) {
-  return getToken() ? children : <Navigate to="/" replace />;
+  if (!getToken()) return <Navigate to="/" replace />;
+  return (
+    <>
+      {children}
+      <Footer loggedIn />
+    </>
+  );
 }
 
 function App() {

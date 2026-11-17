@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import { BelongingsProvider } from './context/BelongingsContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
+import './cst-theme.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

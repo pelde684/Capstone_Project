@@ -8,53 +8,53 @@ import paint from './cst-paint.jpeg'
 const CONTACT = {
   address: 'Phuentsholing, Chhukha, Bhutan',
   email: 'luggage@rub.edu.bt',
-  phone: '+975 17611250',
+  phone: '+975-17611350',
   hours: 'Open daily, 8:00 AM to 5:00 PM',
 }
 const GUIDE = { name: 'Norbu Tshering Lepcha', phone: '17922146' }
 const LEADER = { name: 'Pelden Nidup', phone: '17611350' }
 const MEMBERS = ['Kinley Tshering', 'Tandin Yoezer Wangmo', 'Karma Wangchuk', 'Sonamsangay Yoezer']
 
-const LINKS = [
-  ['/dashboard', 'Dashboard'],
-  ['/register', 'Register item'],
-  ['/belongings', 'My belongings'],
-  ['/feedback', 'Feedback'],
+const OP_LINKS = [
+  ['/operator', 'Dashboard'], ['/operator/scan', 'Scan QR'], ['/operator/verify', 'Verification'],
+  ['/operator/handover', 'Handover'], ['/operator/report', 'Shift report'], ['/operator/rooms', 'Rooms'],
+]
+const ADMIN_LINKS = [
+  ['/admin', 'Dashboard'], ['/admin/students', 'Students'], ['/admin/reports', 'Reports'],
+  ['/admin/records', 'Records'], ['/admin/complaints', 'Complaints'], ['/admin/rooms', 'Rooms'],
 ]
 
 const initials = (n) => n.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
-// Works out whether the site is in light or dark mode, whichever way the theme switch marks the page.
+// Works out whether the site is in light or dark mode (the staff site marks light mode with a "light" class).
 function readTheme() {
   const el = document.documentElement
   if (el.classList.contains('light') || el.getAttribute('data-theme') === 'light') return 'light'
   if (el.classList.contains('dark') || el.getAttribute('data-theme') === 'dark') return 'dark'
-  try {
-    const m = getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g)
-    if (m && m.length >= 3 && (m[3] === undefined || Number(m[3]) > 0.5)) {
-      const [r, g, b] = m.map(Number)
-      return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? 'light' : 'dark'
-    }
-  } catch { /* fall through */ }
   return 'dark'
 }
 
 // Compact footer: the painting shows along the bottom (building, water tower, hills), and a navy
 // shade over the top keeps the text easy to read and matches the side menu.
-// To show more painting, lower the two --cf-top / --cf-bottom numbers (for example .90 -> .75).
+// To show more painting, lower the numbers in the two wash lines: --cf-top / --cf-bottom
+// (the first line of the CSS is dark mode, the line with data-theme="light" is light mode).
 const CSS = `
-.cf { --cf-top: rgba(14,28,46,0.92); --cf-bottom: rgba(14,28,46,0.58); --cf-text: #ffffff; --cf-soft: rgba(255,255,255,0.86); --cf-muted: #b9c6d8; --cf-icon: #cfd9e6; --cf-chip: rgba(255,255,255,0.10); --cf-line: rgba(255,255,255,0.18); --cf-avatar: rgba(255,255,255,0.22); --cf-avatar-text: #ffffff;
-  width: 100%; box-sizing: border-box; color: var(--cf-text);
-  background-image: linear-gradient(to bottom, var(--cf-top), var(--cf-bottom)), var(--cf-paint);
-  background-size: cover; background-position: center bottom; background-repeat: no-repeat; }
-.cf[data-theme="light"] { --cf-top: rgba(255,255,255,0.90); --cf-bottom: rgba(255,255,255,0.55); --cf-text: #12304a; --cf-soft: #26455f; --cf-muted: #1b6f7a; --cf-icon: #1b6f7a; --cf-chip: rgba(255,255,255,0.70); --cf-line: rgba(18,48,74,0.16); --cf-avatar: #1b6f7a; --cf-avatar-text: #ffffff; }
+.cf { --cf-top: rgba(14,28,46,0.92); --cf-mid: rgba(14,28,46,0.73); --cf-bottom: rgba(14,28,46,0.58); --cf-text: #ffffff; --cf-soft: rgba(255,255,255,0.86); --cf-muted: #b9c6d8; --cf-icon: #cfd9e6; --cf-chip: rgba(255,255,255,0.10); --cf-line: rgba(255,255,255,0.18); --cf-avatar: rgba(255,255,255,0.22); --cf-avatar-text: #ffffff; --cf-px: clamp(18px, 3vw, 40px);
+  width: 100%; box-sizing: border-box; color: var(--cf-text); margin-top: 24px;
+  position: relative; isolation: isolate; background-color: var(--cf-base); --cf-base: #0e1c2e; --cf-paint-filter: none; }
+/* the painting and the shade are two separate layers behind the text */
+.cf-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.cf-bg-img { display: block; position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; object-position: center bottom; filter: var(--cf-paint-filter); }
+.cf-bg-veil { position: absolute; inset: 0; background: linear-gradient(to bottom, var(--cf-top), var(--cf-mid) 55%, var(--cf-bottom)); }
+.cf[data-theme="light"] { --cf-top: rgba(236,242,248,0.72); --cf-mid: rgba(236,242,248,0.28); --cf-bottom: rgba(236,242,248,0); --cf-text: #12304a; --cf-soft: #26455f; --cf-muted: #1b6f7a; --cf-icon: #1b6f7a; --cf-chip: rgba(255,255,255,0.62); --cf-line: rgba(18,48,74,0.16); --cf-avatar: #1e3a5f; --cf-avatar-text: #ffffff; --cf-base: #c6d3e2; --cf-paint-filter: saturate(1.55) contrast(1.12) brightness(0.9); }
+.cf-in { container-type: inline-size; width: 100%; }
 .cf *, .cf *::before, .cf *::after { box-sizing: border-box; }
 .cf a { color: inherit; text-decoration: none; }
 .cf a:hover { text-decoration: underline; }
 .cf h3, .cf h4, .cf p, .cf ul, .cf nav { margin: 0; padding: 0; }
 .cf ul { list-style: none; }
 
-.cf-main { display: grid; grid-template-columns: 1.4fr 0.8fr 1.2fr; gap: 36px; padding: 34px 5vw 22px; }
+.cf-main { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr; gap: 32px; padding: 34px var(--cf-px) 22px; }
 .cf-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .cf-logo { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 12px; background: #fff; overflow: hidden; }
 .cf-brand b { display: block; font-size: 1.15rem; line-height: 1.2; }
@@ -62,36 +62,44 @@ const CSS = `
 .cf h3 { font-size: 1.2rem; line-height: 1.3; font-weight: 600; margin-bottom: 6px; }
 .cf-main p { font-size: 0.95rem; line-height: 1.55; color: var(--cf-soft); max-width: 34rem; }
 .cf h4 { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.2em; color: var(--cf-muted); margin-bottom: 12px; }
-.cf nav { display: flex; flex-direction: column; gap: 9px; font-size: 0.95rem; }
+.cf nav { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 22px; font-size: 0.95rem; }
 .cf-contact { display: flex; flex-direction: column; gap: 9px; font-size: 0.95rem; }
 .cf-contact li { display: flex; align-items: flex-start; gap: 10px; }
 .cf-contact svg { flex: none; color: var(--cf-icon); margin-top: 3px; }
 
-.cf-team { border-top: 1px solid var(--cf-line); padding: 16px 5vw 14px; }
+.cf-team { border-top: 1px solid var(--cf-line); padding: 16px var(--cf-px) 14px; }
 .cf-team h4 { margin-bottom: 10px; }
-.cf-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.cf-chip { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 14px 8px 8px; border-radius: 999px; background: var(--cf-chip); border: 1px solid var(--cf-line); }
+.cf-chips { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.cf-chip { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 14px 8px 8px; border-radius: 16px; background: var(--cf-chip); border: 1px solid var(--cf-line); }
 .cf-av { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--cf-avatar); color: var(--cf-avatar-text); font-weight: 700; font-size: 0.8rem; }
 .cf-chip.lead .cf-av, .cf-chip.guide .cf-av { background: #fff; color: #12304a; }
-.cf-chip b { display: block; font-size: 0.9rem; line-height: 1.2; white-space: nowrap; }
-.cf-chip small { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--cf-soft); white-space: nowrap; }
+.cf-chip b { display: block; font-size: 0.9rem; line-height: 1.2; overflow-wrap: anywhere; }
+.cf-chip small { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 0.75rem; color: var(--cf-soft); }
 .cf-chip small svg { flex: none; }
 
-.cf-copy { border-top: 1px solid var(--cf-line); padding: 10px 5vw; font-size: 0.8rem; color: var(--cf-soft); }
+.cf-copy { border-top: 1px solid var(--cf-line); padding: 10px var(--cf-px); font-size: 0.8rem; color: var(--cf-soft); }
+.cf[data-theme="light"] .cf-team { background: rgba(236,242,248,0.38); }
+.cf[data-theme="light"] .cf-copy { background: rgba(236,242,248,0.70); }
 .cf-top { position: fixed; right: 24px; bottom: 24px; z-index: 40; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; border: 0; background: #fff; color: #2f7cf6; box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer; }
 
-@media (max-width: 1000px) {
+/* the footer adapts to the space it has (menu open or closed, phone or desktop) */
+@container (max-width: 820px) {
   .cf-main { grid-template-columns: 1fr 1fr; }
   .cf-main > div:first-child { grid-column: 1 / -1; }
 }
-@media (max-width: 640px) {
+@container (max-width: 520px) {
   .cf-main { grid-template-columns: 1fr; gap: 24px; padding-top: 28px; }
   .cf-chip { border-radius: 16px; }
-  .cf-top { right: 14px; bottom: 14px; }
 }
+@media (max-width: 640px) { .cf-top { right: 14px; bottom: 14px; } }
+
+@container (max-width: 1700px) { .cf-chips { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (max-width: 760px) { .cf-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 480px) { .cf-chips { grid-template-columns: minmax(0, 1fr); } }
 `
 
-export default function Footer() {
+export default function StaffFooter({ role }) {
+  const links = role === 'Admin' ? ADMIN_LINKS : OP_LINKS
   const [top, setTop] = useState(false)
   const [theme, setTheme] = useState(readTheme)
 
@@ -111,9 +119,14 @@ export default function Footer() {
   }, [])
 
   return (
-    <footer className="cf" data-theme={theme} style={{ '--cf-paint': 'url(' + paint + ')' }}>
+    <footer className="cf" data-theme={theme}>
       <style>{CSS}</style>
+      <span className="cf-bg" aria-hidden="true">
+        <img className="cf-bg-img" src={paint} alt="" />
+        <span className="cf-bg-veil" />
+      </span>
 
+      <div className="cf-in">
       <div className="cf-main">
         <div>
           <div className="cf-brand">
@@ -121,12 +134,12 @@ export default function Footer() {
             <div><b>CST Luggage Room</b><small>COLLEGE OF SCIENCE AND TECHNOLOGY</small></div>
           </div>
           <h3>QR Luggage Room Management System</h3>
-          <p>Safe luggage storage for students, hostel residents and visitors. Secure storage, smarter collection.</p>
+          <p>Safe luggage storage for students, hostel residents and visitors. Staff tools for scanning, verifying and handing over items.</p>
         </div>
 
         <div>
-          <h4>QUICK LINKS</h4>
-          <nav>{LINKS.map(([to, label]) => <Link key={to} to={to}>{label}</Link>)}</nav>
+          <h4>{role === 'Admin' ? 'ADMIN TOOLS' : 'OPERATOR TOOLS'}</h4>
+          <nav>{links.map(([to, label]) => <Link key={to} to={to}>{label}</Link>)}</nav>
         </div>
 
         <div>
@@ -161,7 +174,8 @@ export default function Footer() {
       </div>
 
       <div className="cf-copy">
-        © {new Date().getFullYear()} CST Luggage Room. Guide: {GUIDE.name}. Built by {LEADER.name} (leader), {MEMBERS.join(', ')}.
+        © {new Date().getFullYear()} CST Luggage Room · Built by the project team
+      </div>
       </div>
 
       {top && (

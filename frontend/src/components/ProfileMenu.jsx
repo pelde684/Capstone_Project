@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { UserCircle2, ChevronDown, LogOut } from "lucide-react";
 import { clearSession, getUser } from "../api";
 import { useBelongings } from "../context/BelongingsContext";
@@ -8,61 +9,55 @@ import { useBelongings } from "../context/BelongingsContext";
 // The menu is drawn on top of the page (a portal), so no other element can cover it.
 export default function ProfileMenu() {
   const user = getUser();
+  const navigate = useNavigate();
   const { clear } = useBelongings();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 8 });
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
 
+  // put the menu just under the button, aligned to its right edge
+  const place = () => {
+    if (!buttonRef.current) return;
+    const r = buttonRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+  };
+
   useEffect(() => {
     if (!open) return;
     const close = () => setOpen(false);
-
-    // On phones the address bar sliding in/out fires "resize" (height only).
-    // Only close the menu when the width really changes.
-    let lastWidth = window.innerWidth;
-    const onResize = () => {
-      if (window.innerWidth !== lastWidth) close();
-    };
-
     const onPointerDown = (e) => {
       if (buttonRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
       close();
     };
     const onKey = (e) => e.key === "Escape" && close();
-
+    // Scrolling or a phone's address bar sliding in and out must not close the menu,
+    // so the menu just follows the button instead.
+    const onMove = () => place();
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("touchstart", onPointerDown);
     document.addEventListener("keydown", onKey);
-    window.addEventListener("resize", onResize);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", onMove);
+    window.addEventListener("scroll", onMove, true);
     return () => {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("touchstart", onPointerDown);
       document.removeEventListener("keydown", onKey);
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", onMove);
+      window.removeEventListener("scroll", onMove, true);
     };
   }, [open]);
 
   const toggle = () => {
-    if (!open && buttonRef.current) {
-      const r = buttonRef.current.getBoundingClientRect();
-      setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
-    }
+    if (!open) place();
     setOpen((o) => !o);
   };
 
   const logout = () => {
-    try {
-      clear(); // forget this student's items on screen
-    } catch (err) {
-      console.error("clear() failed during logout:", err);
-    }
     clearSession(); // forget the login token
+    try { clear(); } catch { /* items on screen are reset by the next page load anyway */ }
     setOpen(false);
-    // Full reload so no old login state stays in memory.
-    window.location.replace("/");
+    navigate("/", { replace: true });
   };
 
   const name = user?.name || "Student";

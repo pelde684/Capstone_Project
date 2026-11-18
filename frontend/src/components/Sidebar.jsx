@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutGrid,
@@ -13,6 +13,11 @@ import ThemeToggle from "./ThemeToggle";
 import Logo from "../public/Logo";
 import { clearSession } from "../api";
 import { useBelongings } from "../context/BelongingsContext";
+import {
+  useSidebarCollapsed,
+  useSidebarDrawer,
+  useHasMenuToggle,
+} from "./useSidebarCollapsed";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutGrid, path: "/dashboard" },
@@ -24,61 +29,69 @@ const navItems = [
 export default function Sidebar({ activePath }) {
   const navigate = useNavigate();
   const { clear } = useBelongings();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed] = useSidebarCollapsed(); // hidden with the menu button (bigger screens)
+  const [drawerOpen, setDrawerOpen] = useSidebarDrawer(); // slid open (phones)
+  const hasToggle = useHasMenuToggle(); // does the page header already have a menu button?
 
   const handleNavigate = (path) => {
     navigate(path);
-    setMobileOpen(false);
+    setDrawerOpen(false);
   };
 
   const handleLogout = () => {
     clearSession(); // forget the login token
     clear(); // forget this student's items on screen
-    setMobileOpen(false);
+    setDrawerOpen(false);
     navigate("/");
   };
 
   return (
     <>
-      {/* Mobile top bar, only visible below the md breakpoint */}
-      <div className="flex items-center justify-between border-b border-line bg-sidebar px-4 py-3 backdrop-blur-md md:hidden">
-        <div className="flex items-center gap-2">
-          <Logo variant="mark" size={32} />
-          <p className="text-sm font-semibold text-heading">Luggage Room</p>
+      {/* Old mobile top bar: only on pages that do not have a menu button in their own header yet */}
+      {!hasToggle && (
+        <div className="flex items-center justify-between border-b border-line bg-sidebar px-4 py-3 md:hidden">
+          <div className="flex items-center gap-2">
+            <Logo variant="mark" size={32} />
+            <p className="text-sm font-semibold text-heading">Luggage Room</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle iconOnly />
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="text-body hover:text-heading"
+              aria-label="Open menu"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle iconOnly />
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="text-body hover:text-heading"
-            aria-label="Open menu"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-        </div>
-      </div>
+      )}
 
-      {/* Mobile overlay + slide-in sidebar */}
-      {mobileOpen && (
+      {/* Slide-in menu on phones and narrow windows */}
+      {drawerOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
             className="absolute inset-0 bg-black/50"
-            onClick={() => setMobileOpen(false)}
+            onClick={() => setDrawerOpen(false)}
           ></div>
-          <aside className="relative flex h-full w-64 flex-col justify-between bg-drawer text-body backdrop-blur-md">
+          <aside className="relative flex h-full w-72 max-w-[85vw] flex-col justify-between bg-drawer text-body">
             <SidebarContent
               activePath={activePath}
               onNavigate={handleNavigate}
               onLogout={handleLogout}
-              onClose={() => setMobileOpen(false)}
+              onClose={() => setDrawerOpen(false)}
               showClose
             />
           </aside>
         </div>
       )}
 
-      {/* Desktop sidebar, always visible at md and up */}
-      <aside className="hidden w-64 flex-col justify-between border-r border-line bg-sidebar text-body backdrop-blur-md md:flex">
+      {/* Desktop sidebar: visible at md and up, unless hidden with the menu button */}
+      <aside
+        className={`hidden w-64 flex-col justify-between border-r border-line bg-sidebar text-body ${
+          collapsed ? "" : "md:flex"
+        }`}
+      >
         <SidebarContent
           activePath={activePath}
           onNavigate={handleNavigate}

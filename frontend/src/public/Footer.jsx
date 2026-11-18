@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ChevronUp, MapPin, Mail, Phone, Clock, Crown } from 'lucide-react'
 import Logo from './Logo'
 import paint from './cst-paint.jpeg'
+import { useSidebarCollapsed } from '../components/useSidebarCollapsed'
 
 // EDIT THESE: your real details
 const CONTACT = {
@@ -24,30 +25,26 @@ const LINKS = [
 
 const initials = (n) => n.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
-// Works out whether the site is in light or dark mode, whichever way the theme switch marks the page.
+// The student site is light by default and switches to dark when <html> has the "dark" class
+// (see @custom-variant dark in index.css), so the footer follows the same rule.
 function readTheme() {
-  const el = document.documentElement
-  if (el.classList.contains('light') || el.getAttribute('data-theme') === 'light') return 'light'
-  if (el.classList.contains('dark') || el.getAttribute('data-theme') === 'dark') return 'dark'
-  try {
-    const m = getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g)
-    if (m && m.length >= 3 && (m[3] === undefined || Number(m[3]) > 0.5)) {
-      const [r, g, b] = m.map(Number)
-      return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? 'light' : 'dark'
-    }
-  } catch { /* fall through */ }
-  return 'dark'
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
 }
 
 // Compact footer: the painting shows along the bottom (building, water tower, hills), and a navy
 // shade over the top keeps the text easy to read and matches the side menu.
-// To show more painting, lower the two --cf-top / --cf-bottom numbers (for example .90 -> .75).
+// To show more painting, lower the numbers in the two wash lines: --cf-top / --cf-bottom
+// (the first line of the CSS is dark mode, the line with data-theme="light" is light mode).
 const CSS = `
-.cf { --cf-top: rgba(14,28,46,0.92); --cf-bottom: rgba(14,28,46,0.58); --cf-text: #ffffff; --cf-soft: rgba(255,255,255,0.86); --cf-muted: #b9c6d8; --cf-icon: #cfd9e6; --cf-chip: rgba(255,255,255,0.10); --cf-line: rgba(255,255,255,0.18); --cf-avatar: rgba(255,255,255,0.22); --cf-avatar-text: #ffffff;
+.cf { --cf-top: rgba(14,28,46,0.92); --cf-mid: rgba(14,28,46,0.73); --cf-bottom: rgba(14,28,46,0.58); --cf-text: #ffffff; --cf-soft: rgba(255,255,255,0.86); --cf-muted: #b9c6d8; --cf-icon: #cfd9e6; --cf-chip: rgba(255,255,255,0.10); --cf-line: rgba(255,255,255,0.18); --cf-avatar: rgba(255,255,255,0.22); --cf-avatar-text: #ffffff;
   width: 100%; box-sizing: border-box; color: var(--cf-text);
-  background-image: linear-gradient(to bottom, var(--cf-top), var(--cf-bottom)), var(--cf-paint);
-  background-size: cover; background-position: center bottom; background-repeat: no-repeat; }
-.cf[data-theme="light"] { --cf-top: rgba(255,255,255,0.90); --cf-bottom: rgba(255,255,255,0.55); --cf-text: #12304a; --cf-soft: #26455f; --cf-muted: #1b6f7a; --cf-icon: #1b6f7a; --cf-chip: rgba(255,255,255,0.70); --cf-line: rgba(18,48,74,0.16); --cf-avatar: #1b6f7a; --cf-avatar-text: #ffffff; }
+  position: relative; isolation: isolate; background-color: var(--cf-base); --cf-base: #0e1c2e; --cf-paint-filter: none; }
+/* the painting and the shade are two separate layers behind the text */
+.cf-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.cf-bg-img { display: block; position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; object-position: center bottom; filter: var(--cf-paint-filter); }
+.cf-bg-veil { position: absolute; inset: 0; background: linear-gradient(to bottom, var(--cf-top), var(--cf-mid) 55%, var(--cf-bottom)); }
+.cf[data-theme="light"] { --cf-top: rgba(236,242,248,0.72); --cf-mid: rgba(236,242,248,0.28); --cf-bottom: rgba(236,242,248,0); --cf-text: #0b1030; --cf-soft: #3b4456; --cf-muted: #1f5a6b; --cf-icon: #1f5a6b; --cf-chip: rgba(255,255,255,0.62); --cf-line: rgba(18,48,74,0.16); --cf-avatar: #1e3a5f; --cf-avatar-text: #ffffff; --cf-base: #c6d3e2; --cf-paint-filter: saturate(1.55) contrast(1.12) brightness(0.9); }
+.cf-in { container-type: inline-size; width: 100%; }
 .cf *, .cf *::before, .cf *::after { box-sizing: border-box; }
 .cf a { color: inherit; text-decoration: none; }
 .cf a:hover { text-decoration: underline; }
@@ -69,15 +66,17 @@ const CSS = `
 
 .cf-team { border-top: 1px solid var(--cf-line); padding: 16px 5vw 14px; }
 .cf-team h4 { margin-bottom: 10px; }
-.cf-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.cf-chip { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 14px 8px 8px; border-radius: 999px; background: var(--cf-chip); border: 1px solid var(--cf-line); }
+.cf-chips { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.cf-chip { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 14px 8px 8px; border-radius: 16px; background: var(--cf-chip); border: 1px solid var(--cf-line); }
 .cf-av { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--cf-avatar); color: var(--cf-avatar-text); font-weight: 700; font-size: 0.8rem; }
 .cf-chip.lead .cf-av, .cf-chip.guide .cf-av { background: #fff; color: #12304a; }
-.cf-chip b { display: block; font-size: 0.9rem; line-height: 1.2; white-space: nowrap; }
-.cf-chip small { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--cf-soft); white-space: nowrap; }
+.cf-chip b { display: block; font-size: 0.9rem; line-height: 1.2; overflow-wrap: anywhere; }
+.cf-chip small { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 0.75rem; color: var(--cf-soft); }
 .cf-chip small svg { flex: none; }
 
 .cf-copy { border-top: 1px solid var(--cf-line); padding: 10px 5vw; font-size: 0.8rem; color: var(--cf-soft); }
+.cf[data-theme="light"] .cf-team { background: rgba(236,242,248,0.38); }
+.cf[data-theme="light"] .cf-copy { background: rgba(236,242,248,0.70); }
 .cf-top { position: fixed; right: 24px; bottom: 24px; z-index: 40; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; border: 0; background: #fff; color: #2f7cf6; box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer; }
 
 @media (max-width: 1000px) {
@@ -89,11 +88,18 @@ const CSS = `
   .cf-chip { border-radius: 16px; }
   .cf-top { right: 14px; bottom: 14px; }
 }
+
+@container (max-width: 1700px) { .cf-chips { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (max-width: 760px) { .cf-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 480px) { .cf-chips { grid-template-columns: minmax(0, 1fr); } }
 `
 
 export default function Footer() {
   const [top, setTop] = useState(false)
   const [theme, setTheme] = useState(readTheme)
+  const [collapsed] = useSidebarCollapsed()
+  const { pathname } = useLocation() // measure again when the page changes
+  const [offset, setOffset] = useState(0) // width of the side menu, so the footer starts right after it
 
   useEffect(() => {
     const on = () => setTop(window.scrollY > 300)
@@ -110,10 +116,45 @@ export default function Footer() {
     return () => mo.disconnect()
   }, [])
 
-  return (
-    <footer className="cf" data-theme={theme} style={{ '--cf-paint': 'url(' + paint + ')' }}>
-      <style>{CSS}</style>
+  // Sits to the right of the side menu, like the staff footer. With the menu hidden it uses the full width.
+  useEffect(() => {
+    const measure = () => {
+      // the side menu only takes space on a wide screen and when it has not been hidden
+      if (collapsed || !window.matchMedia('(min-width: 768px)').matches) {
+        setOffset(0)
+        return
+      }
+      let left = 0
+      document.querySelectorAll('aside').forEach((a) => {
+        if (a.closest('.fixed')) return // the phone drawer floats above the page, ignore it
+        const r = a.getBoundingClientRect()
+        if (r.width > 0 && r.left <= 1 && getComputedStyle(a).display !== 'none') left = Math.max(left, Math.round(r.right))
+      })
+      setOffset(left)
+    }
+    measure()
+    // the footer can be created before the page and its side menu are drawn, so measure again a few times
+    const timers = [100, 400, 1000].map((ms) => setTimeout(measure, ms))
+    // and whenever the page layout changes size
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
+    if (ro) ro.observe(document.body)
+    window.addEventListener('resize', measure)
+    return () => {
+      timers.forEach(clearTimeout)
+      if (ro) ro.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [collapsed, pathname])
 
+  return (
+    <footer className="cf" data-theme={theme} style={{ marginLeft: offset, width: offset ? `calc(100% - ${offset}px)` : '100%' }}>
+      <style>{CSS}</style>
+      <span className="cf-bg" aria-hidden="true">
+        <img className="cf-bg-img" src={paint} alt="" />
+        <span className="cf-bg-veil" />
+      </span>
+
+      <div className="cf-in">
       <div className="cf-main">
         <div>
           <div className="cf-brand">
@@ -161,7 +202,8 @@ export default function Footer() {
       </div>
 
       <div className="cf-copy">
-        © {new Date().getFullYear()} CST Luggage Room. Guide: {GUIDE.name}. Built by {LEADER.name} (leader), {MEMBERS.join(', ')}.
+        © {new Date().getFullYear()} CST Luggage Room · Built by the project team
+      </div>
       </div>
 
       {top && (

@@ -1,4 +1,3 @@
-
 import {
   Users,
   Briefcase,
@@ -15,6 +14,7 @@ import {
 
 import { semesterStart } from '../period'
 import { Stats, Action } from './Stats'
+import Logo from '../components/Logo'
 
 export default function AdminDashboard({ items = [], students = [] }) {
   // Count luggage by status
@@ -96,7 +96,7 @@ export default function AdminDashboard({ items = [], students = [] }) {
         </div>
 
         <div className="admin-welcome-icon">
-          <Briefcase size={38} />
+          <Logo variant="mark" size={56} />
         </div>
       </section>
 

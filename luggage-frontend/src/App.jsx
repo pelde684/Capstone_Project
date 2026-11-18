@@ -58,10 +58,10 @@ const MENU_CSS = `
 .side-close { display: none; align-items: center; justify-content: center; width: 36px; height: 36px; margin-left: auto; border-radius: 10px; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .side-overlay { display: none; }
 .shell.collapsed > .side { display: none; }
+.shell.collapsed { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 900px) {
   .shell { display: block; }
-  .shell > .side, .shell.collapsed > .side { display: flex; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; width: 272px; max-width: 85vw; overflow-y: auto; background: rgba(15, 27, 45, 0.98); transform: translateX(-105%); transition: transform 0.25s ease; }
-  :root.light .shell > .side { background: rgba(255, 255, 255, 0.98); }
+  .shell > .side, .shell.collapsed > .side { display: flex; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; width: 272px; max-width: 85vw; overflow-y: auto; background: var(--panel); transform: translateX(-105%); transition: transform 0.25s ease; }
   .shell > .side.open { transform: none; box-shadow: 0 0 40px rgba(0, 0, 0, 0.45); }
   .side-close { display: inline-flex; }
   .side-overlay { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(0, 0, 0, 0.5); }

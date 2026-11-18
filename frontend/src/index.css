@@ -1,40 +1,68 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 
 /* Dark styles switch on when the <html> element has the "dark" class */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Light theme colors (used when the dark class is not present) */
+/* Light theme colors (used when the dark class is not present).
+   CST look: white page, deep navy headings, grey secondary text, thin flat grey lines,
+   teal for buttons and banners, amber for small accents. */
 :root {
   color-scheme: light;
-  --overlay: rgb(255 255 255 / 0.5);
-  --panel: rgb(255 255 255 / 0.82);
-  --bar: rgb(255 255 255 / 0.72);
-  --sidebar: rgb(255 255 255 / 0.82);
-  --drawer: rgb(255 255 255 / 0.98);
-  --field: rgb(241 245 249 / 0.9);
-  --line: rgb(15 23 42 / 0.12);
-  --heading: rgb(15 23 42);
-  --body: rgb(51 65 85);
-  --muted: rgb(100 116 139);
-  --accent: rgb(37 99 235);
-  --hover: rgb(15 23 42 / 0.06);
+  --overlay: #ffffff;
+  --panel: #ffffff;
+  --bar: #ffffff;
+  --sidebar: #ffffff;
+  --drawer: #ffffff;
+  --field: #f4f6f8;
+  --line: #e5e7eb;
+  --heading: #0b1030;
+  --body: #3b4456;
+  --muted: #6b7280;
+  --accent: #1f5a6b;
+  --hover: rgb(31 90 107 / 0.08);
+
+  /* the blue buttons, active menu items and gradients become CST teal */
+  --color-blue-50: #e8f2f4;
+  --color-blue-100: #d2e6eb;
+  --color-blue-200: #a9cfd8;
+  --color-blue-300: #7fb5c3;
+  --color-blue-400: #3f8397;
+  --color-blue-500: #1f5a6b;
+  --color-blue-600: #174957;
+  --color-blue-700: #123a45;
+
+  /* amber for warnings and small highlights */
+  --color-amber-300: #ffc95c;
+  --color-amber-500: #f5a200;
+  --color-amber-600: #8a5a00;
+
+  /* smaller corners and the Manrope font (the same font as the staff site) */
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.625rem;
+  --font-sans: "Manrope", "Helvetica Neue", Arial, system-ui, sans-serif;
 }
 
-/* Dark theme colors */
+/* Dark theme colors: same look in deep teal-navy */
 .dark {
   color-scheme: dark;
-  --overlay: rgb(15 23 42 / 0.4);
-  --panel: rgb(15 23 42 / 0.6);
-  --bar: rgb(15 23 42 / 0.4);
-  --sidebar: rgb(15 23 42 / 0.7);
-  --drawer: rgb(15 23 42 / 0.97);
-  --field: rgb(30 41 59 / 0.6);
-  --line: rgb(255 255 255 / 0.1);
-  --heading: rgb(255 255 255);
-  --body: rgb(203 213 225);
-  --muted: rgb(148 163 184);
-  --accent: rgb(147 197 253);
-  --hover: rgb(255 255 255 / 0.05);
+  --overlay: #0d1a29;
+  --panel: #14263a;
+  --bar: #10202f;
+  --sidebar: #0f1f2e;
+  --drawer: #0f1f2e;
+  --field: #1b3045;
+  --line: rgb(255 255 255 / 0.12);
+  --heading: #ffffff;
+  --body: #d3dde8;
+  --muted: #9fb0c4;
+  --accent: #8fd3e6;
+  --hover: rgb(255 255 255 / 0.06);
+
+  /* a slightly lighter teal so buttons stay visible on dark panels */
+  --color-blue-500: #2a7f95;
+  --color-blue-600: #226b7d;
 }
 
 /* Turns the variables above into class names like bg-panel and text-heading */
@@ -52,3 +80,39 @@
   --color-accent: var(--accent);
   --color-hover: var(--hover);
 }
+
+/* Flat look: no frosted glass and no shadows */
+[class*="backdrop-blur"] {
+  --tw-backdrop-blur: blur(0px) !important;
+}
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl {
+  --tw-shadow: 0 0 #0000 !important;
+}
+
+/* Small amber underline under each page title, like the CST website */
+header h1::after {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: #f5a200;
+}
+
+/* The active menu item has a thin amber edge, like the staff site */
+aside nav button.bg-blue-500 {
+  box-shadow: inset 3px 0 0 #f5a200;
+}
+
+/* The small "STUDENT" label in the side menu is amber, like "OPERATOR" on the staff site */
+aside p.tracking-wide.text-accent {
+  color: #f5a200;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* The footer styles itself inside Footer.jsx, so the old footer rules that were here are removed. */

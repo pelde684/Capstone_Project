@@ -1,41 +1,54 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserCircle2, ChevronDown, ChevronLeft, ChevronRight, Package, X, ZoomIn } from "lucide-react";
+import { ChevronLeft, ChevronRight, Package, X, ZoomIn } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import MenuToggle from "../components/MenuToggle";
 import NotificationBell from "../components/NotificationBell";
+import ProfileMenu from "../components/ProfileMenu";
 import MyRoom from "../components/MyRoom";
 import { useBelongings } from "../context/BelongingsContext";
-import { getUser } from "../api";
-import loginBg from "../assets/college.jpeg";
 
-// The whole card takes its color from the item's status, with a light and a dark version
+// Each card is a flat white panel with a coloured left edge that shows the item's status.
+// It has a light and a dark version, and the status is also written out in words.
 const statusStyles = {
   "Pending Verification": {
-    card: "border-yellow-500/60 bg-yellow-200/70 dark:border-yellow-400/50 dark:bg-yellow-500/20",
-    iconBox: "bg-yellow-300/70 dark:bg-yellow-500/25",
-    icon: "text-yellow-700 dark:text-yellow-200",
+    label: "Pending",
+    card: "border-l-4 border-l-amber-500",
+    iconBox: "bg-amber-500/15",
+    icon: "text-amber-600 dark:text-amber-300",
+    badge: "text-amber-700 dark:text-amber-300",
+    dot: "bg-amber-500",
   },
   Stored: {
-    card: "border-emerald-500/60 bg-emerald-200/70 dark:border-emerald-400/50 dark:bg-emerald-500/20",
-    iconBox: "bg-emerald-300/70 dark:bg-emerald-500/25",
-    icon: "text-emerald-700 dark:text-emerald-200",
+    label: "Stored",
+    card: "border-l-4 border-l-emerald-600",
+    iconBox: "bg-emerald-500/15",
+    icon: "text-emerald-700 dark:text-emerald-300",
+    badge: "text-emerald-700 dark:text-emerald-300",
+    dot: "bg-emerald-500",
   },
   "Not Registered": {
-    card: "border-red-500/60 bg-red-200/70 dark:border-red-400/50 dark:bg-red-500/20",
-    iconBox: "bg-red-300/70 dark:bg-red-500/25",
-    icon: "text-red-700 dark:text-red-200",
+    label: "Not registered",
+    card: "border-l-4 border-l-red-600",
+    iconBox: "bg-red-500/15",
+    icon: "text-red-700 dark:text-red-300",
+    badge: "text-red-700 dark:text-red-300",
+    dot: "bg-red-500",
   },
   Returned: {
-    card: "border-line bg-panel",
+    label: "Returned",
+    card: "border-l-4 border-l-slate-400",
     iconBox: "bg-blue-500/15",
     icon: "text-accent",
+    badge: "text-body",
+    dot: "bg-slate-400",
   },
 };
 
 const legend = [
-  { label: "Pending", dot: "bg-yellow-400" },
-  { label: "Stored", dot: "bg-emerald-400" },
-  { label: "Not registered", dot: "bg-red-400" },
+  { label: "Pending", dot: "bg-amber-500" },
+  { label: "Stored", dot: "bg-emerald-500" },
+  { label: "Not registered", dot: "bg-red-500" },
 ];
 
 // Where the item is right now, in words the student understands
@@ -49,7 +62,6 @@ function whereIs(item) {
 export default function MyBelongings() {
   const navigate = useNavigate();
   const { items } = useBelongings();
-  const user = getUser();
   const [selectedPhoto, setSelectedPhoto] = useState(null); // { photos, name, index } or null
 
   const step = (dir) =>
@@ -68,35 +80,22 @@ export default function MyBelongings() {
   }, [selectedPhoto]);
 
   return (
-    <div
-      className="relative min-h-screen"
-      style={{
-        backgroundImage: `url(${loginBg})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="absolute inset-0 bg-overlay backdrop-blur-[2px]"></div>
-
-      <div className="relative z-10 flex min-h-screen flex-col md:flex-row">
+    <div className="min-h-screen bg-overlay">
+      <div className="flex min-h-screen flex-col md:flex-row">
         <Sidebar activePath="/belongings" />
 
-        <div className="flex-1">
-          <header className="flex flex-col gap-3 border-b border-line bg-bar px-4 py-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
-            <div>
-              <h1 className="text-lg font-semibold text-heading sm:text-xl">My Belongings</h1>
-              <p className="text-xs text-body sm:text-sm">Everything you've registered for storage</p>
-            </div>
-            <div className="flex items-center gap-5">
-              <NotificationBell />
-              <div className="flex items-center gap-2">
-                <UserCircle2 className="h-8 w-8 text-accent" />
-                <div className="leading-tight">
-                  <p className="text-sm font-semibold text-heading">{user?.name || "Student"}</p>
-                  <p className="text-xs text-body">{user?.studentId || "CST Luggage Room"}</p>
-                </div>
-                <ChevronDown className="h-4 w-4 text-muted" />
+        <div className="min-w-0 flex-1">
+          <header className="flex flex-col gap-3 border-b border-line bg-bar px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
+            <div className="flex items-center gap-3">
+              <MenuToggle />
+              <div>
+                <h1 className="text-lg font-semibold text-heading sm:text-xl">My Belongings</h1>
+                <p className="text-xs text-body sm:text-sm">Everything you've registered for storage</p>
               </div>
+            </div>
+            <div className="flex w-full items-center justify-between gap-5 sm:w-auto sm:justify-end">
+              <NotificationBell />
+              <ProfileMenu />
             </div>
           </header>
 
@@ -118,16 +117,16 @@ export default function MyBelongings() {
               </div>
               <button
                 onClick={() => navigate("/register")}
-                className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+                className="rounded-xl bg-blue-500 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-600 sm:py-2"
               >
                 + Register New Item
               </button>
             </div>
 
             {items.length === 0 ? (
-              <div className="rounded-2xl border border-line bg-panel p-10 text-center shadow-md backdrop-blur-md">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/15">
-                  <Package className="h-6 w-6 text-accent" />
+              <div className="rounded-xl border border-line bg-panel p-10 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/15">
+                  <Package className="h-6 w-6 text-amber-500" />
                 </div>
                 <h2 className="mt-4 text-lg font-semibold text-heading">No items yet</h2>
                 <p className="mt-1 text-sm text-body">
@@ -147,9 +146,9 @@ export default function MyBelongings() {
                   return (
                     <div
                       key={item.id}
-                      className={`flex flex-col gap-3 rounded-2xl border p-4 shadow-md backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-5 ${style.card}`}
+                      className={`flex flex-col gap-3 rounded-xl border border-line bg-panel p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 ${style.card}`}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex min-w-0 items-center gap-4">
                         {item.photos?.length ? (
                           <button
                             type="button"
@@ -178,13 +177,13 @@ export default function MyBelongings() {
                             <Package className={`h-7 w-7 ${style.icon}`} />
                           </div>
                         )}
-                        <div>
-                          <p className="font-semibold text-heading">{item.name}</p>
+                        <div className="min-w-0">
+                          <p className="break-words font-semibold text-heading">{item.name}</p>
                           <p className="text-xs text-body">
                             {item.category} • QR ID: {item.batchId}
                           </p>
                           {item.description && (
-                            <p className="mt-1 text-xs text-muted">{item.description}</p>
+                            <p className="mt-1 break-words text-xs text-muted">{item.description}</p>
                           )}
                           <p className="mt-1 text-xs text-body">
                             <span className="font-medium text-heading">Location: </span>
@@ -193,7 +192,13 @@ export default function MyBelongings() {
                         </div>
                       </div>
 
-                      <p className="text-xs text-body">{item.date}</p>
+                      <div className="flex shrink-0 items-center justify-between gap-4 sm:flex-col sm:items-end sm:gap-1">
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${style.badge}`}>
+                          <span className={`h-2 w-2 rounded-full ${style.dot}`}></span>
+                          {style.label}
+                        </span>
+                        <p className="text-xs text-body">{item.date}</p>
+                      </div>
                     </div>
                   );
                 })}

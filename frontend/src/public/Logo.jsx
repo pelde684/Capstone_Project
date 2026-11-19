@@ -3,7 +3,8 @@ import markUrl from "./logo-mark.png";
 
 // Luggage Room logo.
 //   variant="mark": the round emblem only (header, footer). `size` is the height in px.
-//   variant="full": emblem plus the LUGGAGE ROOM title and tagline (login page). `size` is the max width in px.
+//   variant="full": emblem plus the LUGGAGE ROOM title and tagline (login page).
+//                   `size` is the widest it may be; it also never takes more than a third of the screen height.
 export default function Logo({ variant = "mark", size, className = "" }) {
   if (variant === "full") {
     return (
@@ -11,7 +12,15 @@ export default function Logo({ variant = "mark", size, className = "" }) {
         src={fullUrl}
         alt="Luggage Room, QR management system. Secure storage. Smarter collection."
         className={className}
-        style={{ display: "block", width: "100%", maxWidth: size ?? 380, height: "auto", margin: "0 auto" }}
+        style={{
+          display: "block",
+          width: "100%",
+          maxWidth: size ?? 300,
+          maxHeight: "34vh",
+          objectFit: "contain",
+          height: "auto",
+          margin: "0 auto",
+        }}
       />
     );
   }

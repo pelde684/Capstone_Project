@@ -60,7 +60,7 @@ export default function StudentDashboard() {
                 <p className="text-xs text-body sm:text-sm">QR Luggage Room Management System</p>
               </div>
             </div>
-            <div className="flex items-center gap-5">
+            <div className="flex w-full items-center justify-between gap-5 sm:w-auto sm:justify-end">
               <NotificationBell />
               <ProfileMenu />
             </div>

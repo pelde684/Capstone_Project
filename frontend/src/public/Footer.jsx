@@ -31,9 +31,9 @@ function readTheme() {
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
 }
 
-// Compact footer: the painting shows along the bottom (building, water tower, hills), and a navy
-// shade over the top keeps the text easy to read and matches the side menu.
-// To show more painting, lower the numbers in the two wash lines: --cf-top / --cf-bottom
+// Compact footer: the painting shows along the bottom (building, water tower, hills), and a shade
+// over the top keeps the text easy to read.
+// To show more painting, lower the numbers in the wash lines: --cf-top / --cf-mid / --cf-bottom
 // (the first line of the CSS is dark mode, the line with data-theme="light" is light mode).
 const CSS = `
 .cf { --cf-top: rgba(14,28,46,0.92); --cf-mid: rgba(14,28,46,0.73); --cf-bottom: rgba(14,28,46,0.58); --cf-text: #ffffff; --cf-soft: rgba(255,255,255,0.86); --cf-muted: #b9c6d8; --cf-icon: #cfd9e6; --cf-chip: rgba(255,255,255,0.10); --cf-line: rgba(255,255,255,0.18); --cf-avatar: rgba(255,255,255,0.22); --cf-avatar-text: #ffffff;
@@ -43,7 +43,7 @@ const CSS = `
 .cf-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .cf-bg-img { display: block; position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; object-position: center bottom; filter: var(--cf-paint-filter); }
 .cf-bg-veil { position: absolute; inset: 0; background: linear-gradient(to bottom, var(--cf-top), var(--cf-mid) 55%, var(--cf-bottom)); }
-.cf[data-theme="light"] { --cf-top: rgba(236,242,248,0.72); --cf-mid: rgba(236,242,248,0.28); --cf-bottom: rgba(236,242,248,0); --cf-text: #0b1030; --cf-soft: #3b4456; --cf-muted: #1f5a6b; --cf-icon: #1f5a6b; --cf-chip: rgba(255,255,255,0.62); --cf-line: rgba(18,48,74,0.16); --cf-avatar: #1e3a5f; --cf-avatar-text: #ffffff; --cf-base: #c6d3e2; --cf-paint-filter: saturate(1.55) contrast(1.12) brightness(0.9); }
+.cf[data-theme="light"] { --cf-top: rgba(236,242,248,0.92); --cf-mid: rgba(236,242,248,0.80); --cf-bottom: rgba(236,242,248,0.52); --cf-text: #0b1030; --cf-soft: #3b4456; --cf-muted: #1f5a6b; --cf-icon: #1f5a6b; --cf-chip: rgba(255,255,255,0.78); --cf-line: rgba(18,48,74,0.18); --cf-avatar: #1e3a5f; --cf-avatar-text: #ffffff; --cf-base: #dfe7f0; --cf-paint-filter: saturate(1.1) brightness(1.02); }
 .cf-in { container-type: inline-size; width: 100%; }
 .cf *, .cf *::before, .cf *::after { box-sizing: border-box; }
 .cf a { color: inherit; text-decoration: none; }
@@ -75,7 +75,7 @@ const CSS = `
 .cf-chip small svg { flex: none; }
 
 .cf-copy { border-top: 1px solid var(--cf-line); padding: 10px 5vw; font-size: 0.8rem; color: var(--cf-soft); }
-.cf[data-theme="light"] .cf-team { background: rgba(236,242,248,0.38); }
+.cf[data-theme="light"] .cf-team { background: rgba(236,242,248,0.62); }
 .cf[data-theme="light"] .cf-copy { background: rgba(236,242,248,0.70); }
 .cf-top { position: fixed; right: 24px; bottom: 24px; z-index: 40; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; border: 0; background: #fff; color: #2f7cf6; box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer; }
 

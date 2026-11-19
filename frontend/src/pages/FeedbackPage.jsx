@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  UserCircle2,
-  ChevronDown,
   MessageSquare,
   Send,
   CheckCircle2,
   ArrowLeft,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import MenuToggle from "../components/MenuToggle";
 import NotificationBell from "../components/NotificationBell";
-import { api, getUser } from "../api";
-import loginBg from "../assets/college.jpeg";
+import ProfileMenu from "../components/ProfileMenu";
+import { api } from "../api";
 
 const feedbackTypes = ["Complaint", "Something isn't working", "Suggestion", "Other"];
 const feedbackPages = ["Login", "Dashboard", "Register Item", "My Belongings", "Other / not sure"];
@@ -46,7 +45,6 @@ export default function FeedbackPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [history, setHistory] = useState([]);
-  const user = getUser();
 
   const loadHistory = () =>
     api("/complaints/mine").then((r) => setHistory(r.data)).catch(() => {});
@@ -79,35 +77,22 @@ export default function FeedbackPage() {
   };
 
   return (
-    <div
-      className="relative min-h-screen"
-      style={{
-        backgroundImage: `url(${loginBg})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="absolute inset-0 bg-overlay backdrop-blur-[2px]"></div>
-
-      <div className="relative z-10 flex min-h-screen flex-col md:flex-row">
+    <div className="min-h-screen bg-overlay">
+      <div className="flex min-h-screen flex-col md:flex-row">
         <Sidebar activePath="/feedback" />
 
-        <div className="flex-1">
-          <header className="flex flex-col gap-3 border-b border-line bg-bar px-4 py-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
-            <div>
-              <h1 className="text-lg font-semibold text-heading sm:text-xl">Feedback &amp; Complaints</h1>
-              <p className="text-xs text-body sm:text-sm">Tell us what's wrong or how we can improve</p>
-            </div>
-            <div className="flex items-center gap-5">
-              <NotificationBell />
-              <div className="flex items-center gap-2">
-                <UserCircle2 className="h-8 w-8 text-accent" />
-                <div className="leading-tight">
-                  <p className="text-sm font-semibold text-heading">{user?.name || "Student"}</p>
-                  <p className="text-xs text-body">{user?.studentId || "CST Luggage Room"}</p>
-                </div>
-                <ChevronDown className="h-4 w-4 text-muted" />
+        <div className="min-w-0 flex-1">
+          <header className="flex flex-col gap-3 border-b border-line bg-bar px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
+            <div className="flex items-center gap-3">
+              <MenuToggle />
+              <div>
+                <h1 className="text-lg font-semibold text-heading sm:text-xl">Feedback &amp; Complaints</h1>
+                <p className="text-xs text-body sm:text-sm">Tell us what's wrong or how we can improve</p>
               </div>
+            </div>
+            <div className="flex w-full items-center justify-between gap-5 sm:w-auto sm:justify-end">
+              <NotificationBell />
+              <ProfileMenu />
             </div>
           </header>
 
@@ -120,7 +105,7 @@ export default function FeedbackPage() {
             </button>
 
             <div className="mx-auto max-w-2xl space-y-5">
-              <div className="rounded-2xl border border-line bg-panel p-5 shadow-md backdrop-blur-md sm:p-8">
+              <div className="rounded-xl border border-line bg-panel p-5 sm:p-8">
                 {sent ? (
                   <div className="py-4 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20">
@@ -132,7 +117,7 @@ export default function FeedbackPage() {
                     </p>
                     <button
                       onClick={sendAnother}
-                      className="mt-6 w-full rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-md transition-colors hover:bg-blue-600"
+                      className="mt-6 w-full rounded-xl bg-blue-500 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-600"
                     >
                       Send Another
                     </button>
@@ -140,8 +125,8 @@ export default function FeedbackPage() {
                 ) : (
                   <>
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20">
-                        <MessageSquare className="h-5 w-5 text-amber-600 dark:text-amber-300" />
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15">
+                        <MessageSquare className="h-5 w-5 text-amber-500" />
                       </div>
                       <div>
                         <h2 className="text-lg font-semibold text-heading">Send Feedback</h2>
@@ -226,7 +211,7 @@ export default function FeedbackPage() {
                       <button
                         type="submit"
                         disabled={sending}
-                        className="flex w-full disabled:opacity-60 items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-md transition-colors hover:bg-blue-600"
+                        className="flex w-full disabled:opacity-60 items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-600"
                       >
                         <Send className="h-4 w-4" />
                         {sending ? "Sending…" : "Submit Feedback"}
@@ -237,7 +222,7 @@ export default function FeedbackPage() {
               </div>
 
               {history.length > 0 && (
-                <div className="rounded-2xl border border-line bg-panel p-5 shadow-md backdrop-blur-md sm:p-8">
+                <div className="rounded-xl border border-line bg-panel p-5 sm:p-8">
                   <h2 className="text-lg font-semibold text-heading">Your Previous Feedback</h2>
                   <div className="mt-4 space-y-3">
                     {history.map((entry) => {

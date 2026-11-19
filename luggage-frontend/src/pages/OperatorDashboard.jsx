@@ -14,7 +14,16 @@ const TASKS = [
   'Print the shift report before you leave',
 ]
 
-const dayKey = () => new Date().toISOString().slice(0, 10)
+// Local date (not UTC), so "today" changes at local midnight
+const dayKey = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const isToday = (d) => {
+  const t = new Date(d)
+  return !Number.isNaN(t.getTime()) && t.toDateString() === new Date().toDateString()
+}
 
 function ago(d) {
   const t = new Date(d).getTime()
@@ -77,7 +86,7 @@ export default function OperatorDashboard({ items }) {
   const rejected = items.filter((i) => i.status === 'Rejected')
   const stale = stored.filter((i) => daysSince(i.date) >= STALE_DAYS)
   const recent = [...items].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 6)
-  const registeredToday = items.filter((i) => String(i.date).startsWith(dayKey())).length
+  const registeredToday = items.filter((i) => isToday(i.date)).length
 
   const cats = [...new Set(stored.map((i) => i.category))].map((k) => [k, stored.filter((i) => i.category === k).length])
   const maxCat = Math.max(...cats.map((x) => x[1]), 1)
@@ -91,14 +100,14 @@ export default function OperatorDashboard({ items }) {
 
   const cells = [
     ['Total items', items.length, `${registeredToday} registered today`, false, null],
-    ['Pending verification', pending.length, pending.length ? `Oldest waiting ${ago(pending[0].date)}` : 'All caught up', pending.length > 0, pending[0] ? `/operator/verify?code=${pending[0].id}` : null],
+    ['Pending verification', pending.length, pending.length ? `Oldest registered ${ago(pending[0].date)}` : 'All caught up', pending.length > 0, pending[0] ? `/operator/verify?code=${pending[0].id}` : null],
     ['Stored', stored.length, `${capPct}% of room capacity`, capPct > 85, '/operator/handover'],
     ['Returned', count('Returned'), 'Handed back to students', false, '/operator/report'],
   ]
 
   const alerts = [
     pending.length > 0 && { tone: 'warn', text: `${pending.length} item${pending.length > 1 ? 's' : ''} waiting for verification`, to: `/operator/verify?code=${pending[0].id}`, cta: 'Review oldest' },
-    rejected.length > 0 && { tone: 'bad', text: `${rejected.length} rejected item${rejected.length > 1 ? 's' : ''} need a re-check`, to: `/operator/verify?code=${rejected[0].id}`, cta: 'Open' },
+    rejected.length > 0 && { tone: 'bad', text: `${rejected.length} rejected item${rejected.length > 1 ? 's need' : ' needs'} a re-check`, to: `/operator/verify?code=${rejected[0].id}`, cta: 'Open' },
     stale.length > 0 && { tone: 'warn', text: `${stale.length} item${stale.length > 1 ? 's have' : ' has'} been stored for ${STALE_DAYS}+ days`, to: `/operator/handover?code=${stale[0].id}`, cta: 'Contact owner' },
     capPct > 85 && { tone: 'bad', text: `Room is ${capPct}% full`, to: null },
   ].filter(Boolean)

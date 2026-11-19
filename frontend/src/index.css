@@ -116,3 +116,44 @@ aside p.tracking-wide.text-accent {
 }
 
 /* The footer styles itself inside Footer.jsx, so the old footer rules that were here are removed. */
+
+/* ===== Phone polish ===== */
+
+/* stops any wide element from letting the page slide sideways
+   (clip, not hidden, so the sticky Submit button keeps working) */
+body {
+  overflow-x: clip;
+}
+
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+@media (max-width: 767px) {
+  /* 16px stops iPhones zooming in when a field is tapped */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* bigger tap targets for the small round buttons on photos */
+  button[aria-label^="Remove photo"] {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* a slightly stronger line so card edges stay visible on a phone in daylight */
+  :root:not(.dark) {
+    --line: #cfd5de;
+  }
+
+  /* keep the page clear of the phone's notch and home bar */
+  header {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  main {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+}

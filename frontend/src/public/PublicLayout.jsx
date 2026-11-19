@@ -1,11 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import Footer from "./Footer";
 import Logo from "./Logo";
 import "./public-layout.css";
 
 // Page shell for logged-out pages: header, welcome area, footer.
 // Usage:
-//   <PublicLayout bannerSrc={banner} backgroundSrc={college} themeSlot={<ThemeToggle />}>
+//   <PublicLayout backgroundSrc={college} themeSlot={<ThemeToggle />}>
 //     ...your login card...
 //   </PublicLayout>
 export default function PublicLayout({
@@ -14,21 +14,26 @@ export default function PublicLayout({
   backgroundSrc,        // campus photo behind the welcome area (optional)
   themeSlot = null,     // e.g. <ThemeToggle />
   themeSlotCompact = null, // optional smaller version for phones, e.g. <ThemeToggle iconOnly />
+  showBrandText = false,   // the big logo already says "Luggage Room", so the header shows only the emblem
   loginPath = "/",
   registerPath = "/signup",
 }) {
   return (
     <div className="pl">
       <header className="pl-header">
-        <Link to={loginPath} className="pl-brand">
+        <Link to={loginPath} className="pl-brand" aria-label="Luggage Room, home">
           <Logo variant="mark" size={44} />
-          <span>
-            <strong>Luggage Room</strong>
-            <small>QR Management System</small>
-          </span>
+          {showBrandText && (
+            <span>
+              <strong>Luggage Room</strong>
+              <small>QR Management System</small>
+            </span>
+          )}
         </Link>
         <nav className="pl-nav" aria-label="Account">
-          <Link to={loginPath} className="pl-link">Log in</Link>
+          <NavLink to={loginPath} end className={({ isActive }) => `pl-link${isActive ? " active" : ""}`}>
+            Log in
+          </NavLink>
           <Link to={registerPath} className="pl-btn">Register</Link>
           <span className="pl-theme-full">{themeSlot}</span>
           <span className="pl-theme-compact">{themeSlotCompact ?? themeSlot}</span>
@@ -45,7 +50,7 @@ export default function PublicLayout({
             <img className="pl-banner" src={bannerSrc} alt="Luggage Room, QR management system" />
           ) : (
             <div className="pl-logo-full">
-              <Logo variant="full" size={400} />
+              <Logo variant="full" size={280} />
             </div>
           )}
           {children}

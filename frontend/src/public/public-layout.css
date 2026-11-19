@@ -58,14 +58,14 @@
 .pl-hero {
   position: relative; flex: 1;
   display: flex; justify-content: center; align-items: flex-start;
-  padding: clamp(24px, 5vw, 56px) 16px;
+  padding: clamp(14px, 2.5vw, 28px) 16px 32px;
   background-color: var(--pl-bg); background-size: cover; background-position: center;
 }
 .pl-hero-tint { position: absolute; inset: 0; background: rgba(31, 90, 107, 0.55); }
 .pl:not(:has(.pl-hero[style])) .pl-hero-tint { background: transparent; }
 .pl-stack {
   position: relative; width: 100%; max-width: 480px;
-  display: flex; flex-direction: column; gap: 16px;
+  display: flex; flex-direction: column; gap: 12px;
 }
 .pl-banner { display: block; width: 100%; height: auto; border-radius: 8px; }
 .pl-logo-full { display: flex; justify-content: center; padding: 0 8px; }
@@ -130,3 +130,7 @@
 
 /* The footer is also used on logged-in pages, outside the .pl wrapper, so it carries its own colours */
 .pl-footer a:focus-visible { outline: 3px solid var(--f-icon); outline-offset: 2px; }
+
+/* Header: mark the page you are on, and keep the emblem-only brand tidy */
+.pl-link.active { color: inherit; box-shadow: inset 0 -3px 0 #f5a200; border-radius: 0; }
+.pl-brand { min-height: 44px; }

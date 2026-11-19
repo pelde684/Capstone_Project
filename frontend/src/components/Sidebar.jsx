@@ -86,10 +86,12 @@ export default function Sidebar({ activePath }) {
         </div>
       )}
 
-      {/* Desktop sidebar: visible at md and up, unless hidden with the menu button */}
+      {/* Desktop sidebar: visible at md and up, unless hidden with the menu button.
+          It stays fixed on the left while you scroll, like the staff site, so it is always
+          right beside the page and the footer, with no gap under it. */}
       <aside
         className={`hidden w-64 flex-col justify-between border-r border-line bg-sidebar text-body ${
-          collapsed ? "" : "md:flex"
+          collapsed ? "" : "md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:overflow-y-auto"
         }`}
       >
         <SidebarContent
@@ -98,6 +100,9 @@ export default function Sidebar({ activePath }) {
           onLogout={handleLogout}
         />
       </aside>
+
+      {/* keeps the room the fixed sidebar would have taken in the page layout */}
+      {!collapsed && <div className="hidden w-64 shrink-0 md:block" aria-hidden="true" />}
     </>
   );
 }

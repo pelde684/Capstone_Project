@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import {
-  UserCircle2,
-  ChevronDown,
   Upload,
   ArrowLeft,
   Download,
@@ -15,11 +13,12 @@ import {
   X,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import MenuToggle from "../components/MenuToggle";
 import NotificationBell from "../components/NotificationBell";
+import ProfileMenu from "../components/ProfileMenu";
 import { api, buildDropOffForm, getUser } from "../api";
 import { useBelongings } from "../context/BelongingsContext";
 import { shortCode } from "../utils/belongings";
-import loginBg from "../assets/college.jpeg";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_PHOTO_MB = 5;
@@ -184,35 +183,22 @@ export default function RegisterItem() {
   };
 
   return (
-    <div
-      className="relative min-h-screen"
-      style={{
-        backgroundImage: `url(${loginBg})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="absolute inset-0 bg-overlay backdrop-blur-[2px]"></div>
-
-      <div className="relative z-10 flex min-h-screen flex-col md:flex-row">
+    <div className="min-h-screen bg-overlay">
+      <div className="flex min-h-screen flex-col md:flex-row">
         <Sidebar activePath="/register" />
 
-        <div className="flex-1">
-          <header className="flex flex-col gap-3 border-b border-line bg-bar px-4 py-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
-            <div>
-              <h1 className="text-lg font-semibold text-heading sm:text-xl">Register Item</h1>
-              <p className="text-xs text-body sm:text-sm">Add one or more belongings for storage</p>
-            </div>
-            <div className="flex items-center gap-5">
-              <NotificationBell />
-              <div className="flex items-center gap-2">
-                <UserCircle2 className="h-8 w-8 text-accent" />
-                <div className="leading-tight">
-                  <p className="text-sm font-semibold text-heading">{user?.name || "Student"}</p>
-                  <p className="text-xs text-body">{user?.studentId || "CST Luggage Room"}</p>
-                </div>
-                <ChevronDown className="h-4 w-4 text-muted" />
+        <div className="min-w-0 flex-1">
+          <header className="flex flex-col gap-3 border-b border-line bg-bar px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
+            <div className="flex items-center gap-3">
+              <MenuToggle />
+              <div>
+                <h1 className="text-lg font-semibold text-heading sm:text-xl">Register Item</h1>
+                <p className="text-xs text-body sm:text-sm">Add one or more belongings for storage</p>
               </div>
+            </div>
+            <div className="flex w-full items-center justify-between gap-5 sm:w-auto sm:justify-end">
+              <NotificationBell />
+              <ProfileMenu />
             </div>
           </header>
 
@@ -227,7 +213,7 @@ export default function RegisterItem() {
                 </button>
 
                 <div className="mx-auto max-w-2xl space-y-5">
-                  <div className="rounded-2xl border border-line bg-panel p-5 shadow-md backdrop-blur-md sm:p-6">
+                  <div className="rounded-xl border border-line bg-panel p-5 sm:p-6">
                     <p className="text-sm text-body">
                       {editingDropOffId
                         ? "You're editing a drop-off. Your QR code stays the same, so a label you already printed is still valid."
@@ -245,7 +231,7 @@ export default function RegisterItem() {
                     {items.map((item, index) => (
                       <div
                         key={item.key}
-                        className="rounded-2xl border border-line bg-panel p-5 shadow-md backdrop-blur-md sm:p-8"
+                        className="rounded-xl border border-line bg-panel p-5 sm:p-8"
                       >
                         <div className="flex items-center justify-between">
                           <h2 className="text-lg font-semibold text-heading">Item {index + 1}</h2>
@@ -345,7 +331,7 @@ export default function RegisterItem() {
                                   htmlFor={`photo-upload-${item.key}`}
                                   className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-muted/50 text-center hover:border-blue-400"
                                 >
-                                  <Upload className="h-5 w-5 text-accent" />
+                                  <Upload className="h-5 w-5 text-amber-500" />
                                   <p className="text-xs text-body">{item.photos.length ? "Add photo" : "Upload photos"}</p>
                                   <p className="text-[10px] text-muted">JPG, PNG, WebP · {MAX_PHOTO_MB}MB</p>
                                 </label>
@@ -367,7 +353,7 @@ export default function RegisterItem() {
                     <button
                       type="button"
                       onClick={addItem}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-muted/40 py-3 text-sm font-medium text-body transition-colors hover:bg-hover"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-muted/40 py-3.5 text-sm font-medium text-body transition-colors hover:bg-hover"
                     >
                       <Plus className="h-4 w-4" />
                       Add Another Item
@@ -376,7 +362,7 @@ export default function RegisterItem() {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-md transition-colors hover:bg-blue-600 disabled:opacity-60"
+                      className="sticky bottom-3 z-20 w-full rounded-xl bg-blue-500 py-3.5 text-sm font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-60 md:static"
                     >
                       {submitting
                         ? "Saving..."
@@ -388,7 +374,7 @@ export default function RegisterItem() {
                 </div>
               </>
             ) : (
-              <div className="mx-auto max-w-md rounded-2xl border border-line bg-panel p-6 text-center shadow-md backdrop-blur-md sm:p-8">
+              <div className="mx-auto max-w-md rounded-xl border border-line bg-panel p-6 text-center sm:p-8">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20">
                   <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-300" />
                 </div>
@@ -418,8 +404,8 @@ export default function RegisterItem() {
                           className="h-10 w-10 rounded-lg object-cover"
                         />
                       ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15">
-                          <Package className="h-5 w-5 text-accent" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15">
+                          <Package className="h-5 w-5 text-amber-500" />
                         </div>
                       )}
                       {item.photos?.length > 1 && (
@@ -448,7 +434,7 @@ export default function RegisterItem() {
 
                 <button
                   onClick={handleDownload}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-md transition-colors hover:bg-blue-600"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-600"
                 >
                   <Download className="h-4 w-4" />
                   {registered.items.length > 1
